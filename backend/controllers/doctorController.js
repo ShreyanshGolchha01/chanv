@@ -1,7 +1,7 @@
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/error.js";
 import { HealthReport } from "../models/Report.js";
-import { User } from "../models/User.js";
+// import { User } from "../models/User.js";
 import { Doctor } from "../models/doctor.js";
 
 // Create a new doctor

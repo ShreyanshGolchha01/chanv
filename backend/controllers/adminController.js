@@ -2,6 +2,7 @@ import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/error.js";
 import { Camp } from "../models/camp.js";
 import { Doctor } from "../models/doctor.js";
+import {User} from "../models/user.js";
 
 // Create a new camp
 export const createCamp = catchAsyncErrors(async (req, res, next) => {
@@ -64,7 +65,7 @@ export const createCamp = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Validate doctors exist
-  const doctors = await Doctor.find({ _id: { $in: conductedBy } });
+  const doctors = await User.find({ _id: { $in: conductedBy } });
   if (doctors.length !== conductedBy.length) {
     return next(new ErrorHandler("One or more doctors not found", 404));
   }
