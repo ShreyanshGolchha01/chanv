@@ -1,260 +1,132 @@
-// API Service for backend integration
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+// API Service (Mocked) - Only Frontend, No Backend Integration
 
-// User API endpoints
+// Dummy delay function
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+// User API endpoints (Mock)
 export const userAPI = {
-  // User registration
-  register: async (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string;
-    password: string;
-    dateOfBirth: string;
-    gender: string;
-  }) => {
-    const response = await fetch(`${API_BASE_URL}/user/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(userData),
-    });
-    return response.json();
+  register: async (userData: any) => {
+    await delay(500);
+    return { success: true, message: "Registration successful (mock)", user: { ...userData, _id: "mockid" } };
   },
 
-  // User login with phone number and password
   login: async (credentials: { phoneNumber: string; password: string }) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/user/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    await delay(500);
+    // Dummy login: phoneNumber '9999999999' and password 'password' will succeed
+    if (credentials.phoneNumber === "9999999999" && credentials.password === "password") {
+      return {
+        success: true,
+        message: "Login successful (mock)",
+        user: {
+          _id: "mockid",
+          firstName: "Demo",
+          lastName: "User",
+          phoneNumber: "9999999999",
+          email: "demo@mock.com",
+          role: "user",
+          dateOfBirth: "1990-01-01",
+          gender: "male",
+          bloodGroup: "O+"
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          phoneNumber: credentials.phoneNumber,
-          password: credentials.password,
-        }),
-      });
-      const result = await response.json();
-      
-      // Store role and auth info in localStorage
-      if (result.success && result.user) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', result.user.role || 'user');
-        localStorage.setItem('authToken', result.token);
-        localStorage.setItem('userData', JSON.stringify(result.user));
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Login failed. Please try again.' };
+        token: "mocktoken"
+      };
     }
+    return { success: false, message: "Invalid credentials (mock)" };
   },
 
-  // Get user profile
   getProfile: async () => {
-    const response = await fetch(`${API_BASE_URL}/user/profile`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return {
+      success: true,
+      user: {
+        _id: "mockid",
+        firstName: "Demo",
+        lastName: "User",
+        phoneNumber: "9999999999",
+        email: "demo@mock.com",
+        role: "user",
+        dateOfBirth: "1990-01-01",
+        gender: "male",
+        bloodGroup: "O+"
+      }
+    };
   },
 
-  // Update user profile
   updateProfile: async (profileData: any) => {
-    const response = await fetch(`${API_BASE_URL}/user/update-profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(profileData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, message: "Profile updated (mock)", user: profileData };
   },
 
-  // User logout
   logout: async () => {
-    const response = await fetch(`${API_BASE_URL}/user/logout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(200);
+    return { success: true, message: "Logged out (mock)" };
   },
 
-  // Get health records
   getHealthRecords: async () => {
-    const response = await fetch(`${API_BASE_URL}/user/health-records`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, records: [] };
   },
 
-  // Add family member
   addFamilyMember: async (familyMemberData: any) => {
-    const response = await fetch(`${API_BASE_URL}/user/family-member`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(familyMemberData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, message: "Family member added (mock)", member: familyMemberData };
   },
 };
 
-// Admin API endpoints
+// Admin API endpoints (Mock)
 export const adminAPI = {
-  // Get all users
   getAllUsers: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/users`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, users: [] };
   },
-
-  // Create new camp
   createCamp: async (campData: any) => {
-    const response = await fetch(`${API_BASE_URL}/admin/camp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(campData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, camp: campData };
   },
-
-  // Get all camps
   getAllCamps: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/camps`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, camps: [] };
   },
-
   getSchemes: async () => {
-    const response = await fetch(`${API_BASE_URL}/admin/schemes`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, schemes: [] };
   },
-
   createScheme: async (schemeData: any) => {
-    const response = await fetch(`${API_BASE_URL}/admin/schemes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(schemeData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, scheme: schemeData };
   },
 };
 
-// Doctor API endpoints
+// Doctor API endpoints (Mock)
 export const doctorAPI = {
-  // Get doctor profile
   getProfile: async () => {
-    const response = await fetch(`${API_BASE_URL}/doctor/profile`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, doctor: { name: "Dr. Mock" } };
   },
-
-  // Update doctor profile
   updateProfile: async (profileData: any) => {
-    const response = await fetch(`${API_BASE_URL}/doctor/update-profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(profileData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, doctor: profileData };
   },
 };
 
-// Health reports API (if available)
+// Health reports API (Mock)
 export const reportsAPI = {
-  // Get user health reports
   getUserReports: async () => {
-    const response = await fetch(`${API_BASE_URL}/user/health-reports`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, reports: [] };
   },
-
-  // Get specific report by ID
   getReportById: async (reportId: string) => {
-    const response = await fetch(`${API_BASE_URL}/user/health-reports/${reportId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, report: { id: reportId } };
   },
-
-  // Create health report
   createReport: async (reportData: any) => {
-    const response = await fetch(`${API_BASE_URL}/user/health-report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(reportData),
-    });
-    return response.json();
+    await delay(300);
+    return { success: true, report: reportData };
   },
 };
 
-// Error handling utility
+// Error handling utility (unchanged)
 export const handleAPIError = (error: any) => {
   console.error('API Error:', error);
-  if (error.message === 'Unauthorized') {
-    // Handle logout or redirect to login
-    return 'Please login again';
-  }
   return error.message || 'Something went wrong';
 };
