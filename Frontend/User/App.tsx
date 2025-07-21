@@ -66,33 +66,21 @@ export default function App() {
   }
 
   setIsLoading(true);
-  //use your IP address or API endpoint
-  // Example: http://<your-ip-address>:5000
-  try {
-    const response = await axios.post('http://192.168.0.180:5000/api/v1/user/login', {
-      phoneNumber,
-      password
-    });
 
-    const data = response.data;
-
-    if (data.success) {
-      const user = data.user;
-      const fullName = `${user.firstName} ${user.lastName}`;
+  // Mock login logic (no API call)
+  setTimeout(() => {
+    // Dummy login: phoneNumber '9999999999' and password 'password' will succeed
+    if (phoneNumber === "9999999999" && password === "password") {
+      const fullName = "Demo User";
       setUserName(fullName);
       setIsLoggedIn(true);
       Alert.alert('सफल', `लॉगिन सफल! स्वागत है ${fullName}`);
     } else {
-      Alert.alert('त्रुटि', data.message || 'लॉगिन में समस्या हुई');
+      Alert.alert('त्रुटि', 'अमान्य फोन नंबर या पासवर्ड');
     }
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message || error.message;
-    Alert.alert('त्रुटि', errorMessage || 'नेटवर्क की समस्या। कृपया दोबारा कोशिश करें।');
-  } finally {
     setIsLoading(false);
-  }
+  }, 700);
 };
-
   const handleLogout = () => {
     setIsLoggedIn(false);
     setPhoneNumber('');
