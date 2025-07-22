@@ -16,24 +16,33 @@ export interface Doctor {
   specialty: string;
   phone: string;
   email: string;
+  password?: string;  // optional for new doctor creation
   avatar?: string;
   experience: number;
   qualification: string[];
   assignedCamps: string[];
 }
 
+
+
+
+
 export interface Camp {
   id: string;
+  campName?: string;
   location: string;
-  date: string;
-  time: string;
-  doctors: string[];
-  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
-  beneficiaries: number;
-  expectedBeneficiaries: number;
   address: string;
-  coordinator: string;
+  date: string;
+  time?: string;
+  coordinator?: string;
+  expectedBeneficiaries?: number;
+  doctors?: string[];       // nullable in some backend responses
+  services?: string[];      // nullable in some backend responses
+  status?: string;
+  beneficiaries?: number;
+  description?: string;
 }
+
 
 export interface HealthRecord {
   id: string;

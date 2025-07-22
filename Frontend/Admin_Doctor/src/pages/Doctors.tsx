@@ -67,6 +67,7 @@ const Doctors: React.FC = () => {
     specialty: formData.specialty,
     phone: formData.phone,
     email: formData.email,
+    password: formData.password,
     experience: parseInt(formData.experience, 10),
     qualification: formData.qualification,
     assignedCamps: formData.assignedCamps,
@@ -101,6 +102,7 @@ const Doctors: React.FC = () => {
       specialty: post.specialty,
       phone: post.phone,
       email: post.email,
+      password: formData.password,
       experience: parseInt(post.experience, 10),
       qualification: Array.isArray(post.qualification) 
         ? post.qualification 
@@ -148,6 +150,7 @@ const Doctors: React.FC = () => {
     specialty: post.specialty,
     phone: post.phone,
     email: post.email,
+    password: formData.password,
     experience: parseInt(post.experience, 10),
     qualification: Array.isArray(post.qualification) 
       ? post.qualification 
@@ -187,6 +190,7 @@ const Doctors: React.FC = () => {
       specialty: post.specialty,
       phone: post.phone,
       email: post.email,
+      password: formData.password,
       experience: parseInt(post.experience, 10),
       // yaha change kiya hu
       qualification: Array.isArray(post.qualification) 

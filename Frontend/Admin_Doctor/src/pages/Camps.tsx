@@ -7,12 +7,17 @@ import { mockCamps, mockDoctors, getDoctorById } from '../data/mockData';
 import type { Camp, TableColumn } from '../types/interfaces';
 import serverUrl from './Server';
 import axios from 'axios';
+import type { Doctor } from '../types/interfaces';
+
 const Camps: React.FC = () => {
   const [camps, setCamps] = useState(mockCamps);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCamp, setEditingCamp] = useState<Camp | null>(null);
   const [deletingCamp, setDeletingCamp] = useState<Camp | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+
 
   // UPDATED: Changed form structure to match NewCamp.tsx layout
   const [formData, setFormData] = useState({
@@ -35,6 +40,8 @@ const Camps: React.FC = () => {
   const [showDoctorDialog, setShowDoctorDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+
+
   // NEW: Added available services list matching NewCamp.tsx
   const availableServices = [
     'सामान्य स्वास्थ्य जांच',
@@ -48,13 +55,18 @@ const Camps: React.FC = () => {
   ];
 
   // NEW: Added doctor search filtering functionality
-  const filteredDoctors = mockDoctors.filter(doctor => 
-    doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    Array.isArray(doctor.qualification)
-      ? doctor.qualification.join(' ').toLowerCase().includes(searchTerm.toLowerCase())
-      : String(doctor.qualification).toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDoctors = doctors.filter((doctor) => {
+  const name = doctor?.name?.toLowerCase() || '';
+  const specialty = doctor?.specialty?.toLowerCase() || '';
+  const qualification = doctor.qualification?.join(' ').toLowerCase();
+
+  return (
+    name.includes(searchTerm.toLowerCase()) ||
+    specialty.includes(searchTerm.toLowerCase()) ||
+    qualification.includes(searchTerm.toLowerCase())
   );
+});
+
 
   // Handle escape key to close dialog
   useEffect(() => {
@@ -152,7 +164,7 @@ const Camps: React.FC = () => {
   };
 
   //=================use effect to load data
-useEffect(() => {
+  useEffect(() => {
     const fetchCamps = async () => {
       try {
         const endpoint = `${serverUrl}show_camp.php`;
@@ -182,169 +194,218 @@ useEffect(() => {
   }, []); // Run only on component mount
 
   //////end of use effect
-  const handleAddCamp = async() => {
-    if (!validateForm()) {
-      return;
+useEffect(() => {
+  const fetchDoctors = async () => {
+    try {
+      const endpoint = `${serverUrl}show_doctor.php`;
+      const response = await axios.post(endpoint, {});
+      const data = response.data;
+
+      const loadedDoctors: Doctor[] = data.posts.map((doc: any) => ({
+        id: doc.id,
+        name: doc.name,
+        specialty: doc.specialty,
+        phone: doc.phone,
+        email: doc.email,
+        avatar: doc.avatar || '', // optional
+        experience: Number(doc.experience),
+        qualification: doc.qualification
+          ? doc.qualification.split(',').map((q: string) => q.trim())
+          : [],
+        assignedCamps: doc.assignedCamps
+          ? doc.assignedCamps.split(',').map((c: string) => c.trim())
+          : []
+      }));
+
+      setDoctors(loadedDoctors);
+    } catch (error) {
+      console.error('Error loading doctors:', error);
     }
-
-    setIsLoading(true);
-   
-    const endpoint =`${serverUrl}save_camp.php`
-
-    const response = await axios.post(endpoint, {
-      id: Date.now().toString(),
-      campName: formData.campName,
-      location: formData.location,
-      date: formData.date,
-      d1: formData.startTime,
-      d2: formData.endTime,
-      address: formData.address,
-      expectedBeneficiaries: parseInt(formData.expectedPatients),
-      doctors: formData.assignedDoctors,
-      services: formData.services,
-      description: formData.description,
-      status: 'scheduled',
-      beneficiaries: 0,
-    });
-    alert('Data has been added!!')
-   const data = response.data;
-
-const newCamps: Camp[] = data.posts.map((post: any) => ({
-  id: post.id,
-  location: post.location,
-  date: post.DATE,
-  time: `${post.startTime} - ${post.endTime}`,
-  address: post.address,
-  coordinator: post.coordinator,
-  expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
-  doctors: formData.assignedDoctors,
-  status: 'scheduled',
-  beneficiaries: 0,
-}));
-
-setCamps([...camps, ...newCamps]);
-
-    setShowAddModal(false);
-    setIsLoading(false);
-    resetForm();
   };
 
-  const handleEditCamp = async() => {
-    if (!editingCamp) return;
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
-  
-   
-    
- const endpoint =`${serverUrl}update_camp.php`
-
-    const response = await axios.post(endpoint, {
-      id: formData.id,
-      campName: formData.campName,
-      location: formData.location,
-      date: formData.date,
-      d1: formData.startTime,
-      d2: formData.endTime,
-      address: formData.address,
-      expectedBeneficiaries: parseInt(formData.expectedPatients),
-      doctors: formData.assignedDoctors,
-      services: formData.services,
-      description: formData.description,
-      status: 'scheduled',
-      beneficiaries: 0,
-    });
-   alert('Data has been Updated!!')
-   const data = response.data;
+  fetchDoctors(); // ✅ Make sure to call the async function here
+}, []);
 
 
-const newCamps: Camp[] = data.posts.map((post: any) => ({
-  id: post.id,
-  location: post.location,
-  date: post.DATE,
-  time: `${post.startTime} - ${post.endTime}`,
-  address: post.address,
-  coordinator: post.coordinator,
-  expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
-  doctors: formData.assignedDoctors,
-  status: 'scheduled',
-  beneficiaries: 0,
-}));
 
-setCamps([...camps, ...newCamps]);
 
-   
-    setEditingCamp(null);
-    setIsLoading(false);
-    resetForm();
-  };
+  const handleAddCamp = async () => {
+  if (!validateForm()) {
+    return;
+  }
 
-  const handleDeleteCamp = async() => {
-       const endpoint =`${serverUrl}delete_camp.php`
-    if (!deletingCamp) return;
-  
-    const response = await axios.post(endpoint, {
-      id: deletingCamp.id,
-  
-    });
-    alert('Data has been deleted!!')
-   const data = response.data;
+  setIsLoading(true);
 
-const newCamps: Camp[] = data.posts.map((post: any) => ({
-  id: post.id,
-  location: post.location,
-  date: post.DATE,
-  time: `${post.startTime} - ${post.endTime}`,
-  address: post.address,
-  coordinator: post.coordinator,
-  expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
-  doctors: formData.assignedDoctors,
-  status: 'scheduled',
-  beneficiaries: 0,
-}));
+  const endpoint = `${serverUrl}save_camp.php`;
 
-setCamps([...camps, ...newCamps]);
- // setDeletingCamp(null);
-   resetForm();
-  };
+  const response = await axios.post(endpoint, {
+    id: Date.now().toString(), // if using string ID
+    campName: formData.campName,
+    location: formData.location,
+    date: formData.date,
+    startTime: formData.startTime,
+    endTime: formData.endTime,
+    address: formData.address,
+    description: formData.description,
+    expectedBeneficiaries: parseInt(formData.expectedPatients),
+    doctors: formData.assignedDoctors.join(','), // send as comma-separated
+    services: formData.services.join(','), // send as comma-separated
+    coordinator: '', // optional or populate if needed
+    status: 'scheduled',
+    beneficiaries: '0',
+    createdBy: 'admin', // or use dynamic logged-in user
+    createdAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
+  });
+
+  alert('Camp has been added successfully!');
+  const data = response.data;
+
+  const newCamps: Camp[] = data.posts.map((post: any) => ({
+    id: post.id,
+    campName: post.campName,
+    location: post.location,
+    date: post.date,
+    time: `${post.startTime} - ${post.endTime}`,
+    address: post.address,
+    coordinator: post.coordinator,
+    expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
+    doctors: post.doctors?.split(','),
+    services: post.services?.split(','),
+    status: post.status,
+    beneficiaries: parseInt(post.beneficiaries || '0', 10),
+  }));
+
+  setCamps([...camps, ...newCamps]);
+  setShowAddModal(false);
+  setIsLoading(false);
+  resetForm();
+};
+
+
+  const handleEditCamp = async () => {
+  if (!editingCamp) return;
+
+  if (!validateForm()) {
+    return;
+  }
+
+  setIsLoading(true);
+
+  const endpoint = `${serverUrl}update_camp.php`;
+
+  const response = await axios.post(endpoint, {
+    id: formData.id,
+    campName: formData.campName,
+    location: formData.location,
+    date: formData.date,
+    startTime: formData.startTime,
+    endTime: formData.endTime,
+    address: formData.address,
+    description: formData.description,
+    expectedBeneficiaries: parseInt(formData.expectedPatients),
+    doctors: formData.assignedDoctors.join(','),       // send as comma-separated string
+    services: formData.services.join(','),             // send as comma-separated string
+    status: 'scheduled',
+    beneficiaries: 0,
+    updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
+  });
+
+  alert('Camp has been updated successfully!');
+
+  const data = response.data;
+
+  const newCamps: Camp[] = data.posts.map((post: any) => ({
+    id: post.id,
+    campName: post.campName,
+    location: post.location,
+    date: post.date,
+    time: `${post.startTime} - ${post.endTime}`,
+    address: post.address,
+    coordinator: post.coordinator,
+    expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
+    doctors: post.doctors?.split(','),
+    services: post.services?.split(','),
+    status: post.status,
+    beneficiaries: parseInt(post.beneficiaries || '0', 10),
+  }));
+
+  setCamps([...camps.filter(c => c.id !== formData.id), ...newCamps]);
+
+  setEditingCamp(null);
+  setIsLoading(false);
+  resetForm();
+};
+
+
+  const handleDeleteCamp = async () => {
+  if (!deletingCamp) return;
+
+  const endpoint = `${serverUrl}delete_camp.php`;
+
+  const response = await axios.post(endpoint, {
+    id: deletingCamp.id,
+  });
+
+  alert('Camp has been deleted successfully!');
+  const data = response.data;
+
+  const newCamps: Camp[] = data.posts.map((post: any) => ({
+    id: post.id,
+    campName: post.campName,
+    location: post.location,
+    date: post.date,
+    time: `${post.startTime} - ${post.endTime}`,
+    address: post.address,
+    coordinator: post.coordinator,
+    expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
+    doctors: post.doctors?.split(','),
+    services: post.services?.split(','),
+    status: post.status,
+    beneficiaries: parseInt(post.beneficiaries || '0', 10),
+  }));
+
+  setCamps(newCamps); // Replace full list with updated data from backend
+  setDeletingCamp(null);
+  resetForm();
+};
+
 
   const resetForm = () => {
-    setFormData({
-      id:'0',
-      campName: '',
-      location: '',
-      address: '',
-      date: '',
-      startTime: '',
-      endTime: '',
-      expectedPatients: '',
-      description: '',
-      services: [],
-      assignedDoctors: []
-    });
-  };
+  setFormData({
+    id: '', // assuming id is auto-incremented or string for frontend handling
+    campName: '',
+    location: '',
+    address: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    expectedPatients: '', // corresponds to expectedBeneficiaries
+    description: '',
+    services: [],
+    assignedDoctors: []
+  });
+};
 
-  const openEditModal = (camp: Camp) => {
- 
-    setEditingCamp(camp);
-    setFormData({
-      id: camp.id,
-      campName: camp.location, // Map location to campName for now
-      location: camp.location,
-      startTime: camp.time.split(' - ')[0] || '',
-      endTime: camp.time.split(' - ')[1] || '',
-      address: camp.address,
-      date: camp.date,
-      expectedPatients: camp.expectedBeneficiaries.toString(),
-      assignedDoctors: camp.doctors,
-      description: '',
-      services: []
-    });
-    setShowAddModal(true);
-  };
+const openEditModal = (camp: Camp) => {
+  setEditingCamp(camp);
+  setFormData({
+    id: camp.id,
+    campName: camp.campName || '',
+    location: camp.location || '',
+    startTime: camp.time?.split(' - ')[0] || '',
+    endTime: camp.time?.split(' - ')[1] || '',
+    address: camp.address || '',
+    date: camp.date || '',
+    expectedPatients: camp.expectedBeneficiaries?.toString() || '',
+    description: camp.description || '',
+    services: camp.services || [],
+    assignedDoctors: camp.doctors || []
+  });
+  setShowAddModal(true);
+};
+
+
+
 
   const getStatusBadge = (status: string) => {
     const statusStyles = {
@@ -522,7 +583,7 @@ setCamps([...camps, ...newCamps]);
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">कुल लाभार्थी</p>
               <p className="text-2xl font-bold text-gray-900">
-                {camps.reduce((sum, camp) => sum + camp.beneficiaries, 0)}
+               {camps.reduce((sum, camp) => sum + (Number(camp.beneficiaries) || 0), 0)}
               </p>
             </div>
           </div>
