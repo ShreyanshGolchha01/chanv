@@ -17,12 +17,13 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomButton from './src/components/CustomButton';
 import CustomInput from './src/components/CustomInput';
 import HomeScreen from './src/screens/HomeScreen';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from './src/constants/theme';
 import { userAPI, handleAPIError } from './src/services/api';
+import serverUrl from './src/services/Server';
 
 const { height } = Dimensions.get('window');
 
@@ -66,20 +67,38 @@ export default function App() {
   }
 
   setIsLoading(true);
+//------------------------------------start php backend
 
-  // Mock login logic (no API call)
-  setTimeout(() => {
-    // Dummy login: phoneNumber '9999999999' and password 'password' will succeed
-    if (phoneNumber === "9999999999" && password === "password") {
-      const fullName = "Demo User";
-      setUserName(fullName);
-      setIsLoggedIn(true);
-      Alert.alert('सफल', `लॉगिन सफल! स्वागत है ${fullName}`);
-    } else {
-      Alert.alert('त्रुटि', 'अमान्य फोन नंबर या पासवर्ड');
-    }
-    setIsLoading(false);
-  }, 700);
+fetch(serverUrl + '/chkusr.php', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    t1: phoneNumber,
+                    t2: password
+                })
+            })
+            .then((response) =>response.json())
+            .then((responseJson) => {
+                if (responseJson == 0) {
+                    alert('Invalid Login ...');
+                    return;
+                }
+                const s = responseJson.split(",");
+                console.log( s[2])
+                AsyncStorage.setItem('cid', s[0]);
+                AsyncStorage.setItem('mobile', s[1]);
+                AsyncStorage.setItem('usertype', s[2]);
+                
+            }).catch((error) => {
+                console.error(error);
+            });
+        
+//-----------------------------end code backend
+setIsLoading(false);
+  
 };
   const handleLogout = () => {
     setIsLoggedIn(false);
