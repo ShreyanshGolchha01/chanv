@@ -1,8 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  MapPin, 
+  LayoutDashboard,  
   Users, 
   Heart, 
   UserPlus,
@@ -18,15 +17,17 @@ interface DoctorSidebarProps {
 }
 
 const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isOpen, onClose }) => {
+  // yaha se changes start hue hai
   const menuItems = [
     { icon: LayoutDashboard, label: 'डैशबोर्ड', path: '/doctor/dashboard' },
-    { icon: MapPin, label: 'नया शिविर', path: '/doctor/new-camp' },
+    // { icon: MapPin, label: 'नया शिविर', path: '/doctor/new-camp' },
     { icon: Users, label: 'मरीज़ प्रबंधन', path: '/doctor/patients' },
     { icon: Heart, label: 'स्वास्थ्य रिकॉर्ड', path: '/doctor/health-records' },
     { icon: UserPlus, label: 'पारिवारिक स्वास्थ्य', path: '/doctor/family-health' },
     { icon: Activity, label: 'सभी गतिविधि', path: '/doctor/activities' },
     { icon: User, label: 'प्रोफाइल', path: '/doctor/profile' },
   ];
+  // niche yaha tak hue hai
 
   const handleLogout = () => {
     localStorage.removeItem('isDoctorAuthenticated');

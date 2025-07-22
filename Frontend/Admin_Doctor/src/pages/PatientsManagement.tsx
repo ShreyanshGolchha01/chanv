@@ -24,6 +24,9 @@ interface Patient {
   lastVisit: string;
   healthStatus: 'good' | 'fair' | 'poor';
   familyMembers: number;
+  // yaha se changes start hue hai
+  department: string;
+  // niche yaha tak hue hai
 }
 
 const PatientsManagement: React.FC = () => {
@@ -37,7 +40,8 @@ const PatientsManagement: React.FC = () => {
     gender: 'male' as 'male' | 'female',
     phone: '',
     address: '',
-    familyMembers: ''
+    familyMembers: '',
+    department: ''
   });
 
   // Empty patients data - Connect to your backend
@@ -94,11 +98,18 @@ const PatientsManagement: React.FC = () => {
   const handleAddPatient = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // yaha se changes start hue hai
     // Validation
-    if (!newPatient.name || !newPatient.age || !newPatient.phone || !newPatient.address) {
+    if (!newPatient.name || !newPatient.age || !newPatient.phone || !newPatient.address || !newPatient.department) {
       alert('कृपया सभी आवश्यक फ़ील्ड भरें');
       return;
     }
+    // Phone number must be exactly 10 digits
+    if (!/^\d{10}$/.test(newPatient.phone)) {
+      alert('फोन नंबर 10 अंकों का होना चाहिए');
+      return;
+    }
+    // niche yaha tak hue hai
 
     // Create new patient object
     const patient: Patient = {
@@ -110,7 +121,8 @@ const PatientsManagement: React.FC = () => {
       address: newPatient.address,
       lastVisit: new Date().toISOString().split('T')[0],
       healthStatus: 'fair',
-      familyMembers: parseInt(newPatient.familyMembers) || 0
+      familyMembers: parseInt(newPatient.familyMembers) || 0,
+      department: newPatient.department
     };
 
     // Add patient to list
@@ -123,7 +135,8 @@ const PatientsManagement: React.FC = () => {
       gender: 'male',
       phone: '',
       address: '',
-      familyMembers: ''
+      familyMembers: '',
+      department: ''
     });
     
     // Close modal
@@ -448,6 +461,47 @@ const PatientsManagement: React.FC = () => {
                   required
                 />
               </div>
+              {/* yaha se changes start hue hai */}
+              {/* Department Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  विभाग चुनें *
+                </label>
+                <select
+                  value={newPatient.department}
+                  onChange={(e) => setNewPatient({...newPatient, department: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">विभाग चुनें</option>
+                  <option value="सामान्य प्रशासन विभाग">सामान्य प्रशासन विभाग</option>
+                  <option value="गृह विभाग">गृह विभाग</option>
+                  <option value="वित्त विभाग">वित्त विभाग</option>
+                  <option value="स्वास्थ्य एवं परिवार कल्याण विभाग">स्वास्थ्य एवं परिवार कल्याण विभाग</option>
+                  <option value="स्कूल शिक्षा विभाग">स्कूल शिक्षा विभाग</option>
+                  <option value="उच्च शिक्षा विभाग">उच्च शिक्षा विभाग</option>
+                  <option value="तकनीकी शिक्षा विभाग">तकनीकी शिक्षा विभाग</option>
+                  <option value="वन विभाग">वन विभाग</option>
+                  <option value="राजस्व एवं आपदा प्रबंधन विभाग">राजस्व एवं आपदा प्रबंधन विभाग</option>
+                  <option value="खाद्य, नागरिक आपूर्ति एवं उपभोक्ता संरक्षण विभाग">खाद्य, नागरिक आपूर्ति एवं उपभोक्ता संरक्षण विभाग</option>
+                  <option value="कृषि विभाग">कृषि विभाग</option>
+                  <option value="पंचायत एवं ग्रामीण विकास विभाग">पंचायत एवं ग्रामीण विकास विभाग</option>
+                  <option value="श्रम विभाग">श्रम विभाग</option>
+                  <option value="महिला एवं बाल विकास विभाग">महिला एवं बाल विकास विभाग</option>
+                  <option value="जनजातीय कार्य विभाग">जनजातीय कार्य विभाग</option>
+                  <option value="अनुसूचित जाति एवं अन्य पिछड़ा वर्ग विकास विभाग">अनुसूचित जाति एवं अन्य पिछड़ा वर्ग विकास विभाग</option>
+                  <option value="ऊर्जा विभाग">ऊर्जा विभाग</option>
+                  <option value="जल संसाधन विभाग">जल संसाधन विभाग</option>
+                  <option value="लोक निर्माण विभाग">लोक निर्माण विभाग</option>
+                  <option value="परिवहन विभाग">परिवहन विभाग</option>
+                  <option value="नगर प्रशासन विभाग">नगर प्रशासन विभाग</option>
+                  <option value="सूचना प्रौद्योगिकी विभाग">सूचना प्रौद्योगिकी विभाग</option>
+                  <option value="पर्यटन विभाग">पर्यटन विभाग</option>
+                  <option value="खेल एवं युवा कल्याण विभाग">खेल एवं युवा कल्याण विभाग</option>
+                  <option value="उद्योग विभाग">उद्योग विभाग</option>
+                </select>
+              </div>
+              {/* niche yaha tak hue hai */}
 
               {/* Address */}
               <div>

@@ -5,8 +5,6 @@ import {
   Users, 
   Heart, 
   Calendar, 
-  Plus,
-  Clock,
   UserPlus
 } from 'lucide-react';
 
@@ -33,8 +31,7 @@ const DoctorDashboard: React.FC = () => {
   // Empty activities data - Connect to your backend
   const recentActivities: any[] = [];
 
-  // Empty camps data - Connect to your backend  
-  const upcomingCamps: any[] = [];
+  // ...existing code...
 
   const kpiCards = [
     {
@@ -129,19 +126,10 @@ const DoctorDashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
+      {/* yaha se changes start hue hai */}
       <div className="card border border-gray-400">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">त्वरित कार्य</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button 
-            onClick={() => navigate('/doctor/new-camp')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors duration-200"
-          >
-            <div className="text-center">
-              <Plus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700">नया शिविर जोड़ें</p>
-            </div>
-          </button>
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
             onClick={() => navigate('/doctor/patients')}
             className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors duration-200"
@@ -173,6 +161,7 @@ const DoctorDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+      {/* niche yaha tak hue hai */}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -217,55 +206,9 @@ const DoctorDashboard: React.FC = () => {
         </div>
 
         {/* Upcoming Camps */}
-        <div className="card border border-gray-400">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">आगामी शिविर</h3>
-          </div>
-          <div className="space-y-4">
-            {upcomingCamps.length > 0 ? upcomingCamps.map((camp) => (
-              <div key={camp.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                      {camp.location}
-                    </h4>
-                    <div className="flex items-center text-xs text-gray-500 mb-2">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      <span>{new Date(camp.date).toLocaleDateString('hi-IN')}</span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500 mb-2">
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span>{camp.time}</span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Users className="h-3 w-3 mr-1" />
-                      <span>{camp.expectedPatients} अपेक्षित मरीज़</span>
-                    </div>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    camp.status === 'confirmed' 
-                      ? 'bg-orange-100 text-orange-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {camp.status === 'confirmed' ? 'पुष्ट' : 'निर्धारित'}
-                  </span>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">कोई आगामी शिविर नहीं है</p>
-              </div>
-            )}
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <button 
-              onClick={() => navigate('/doctor/new-camp')}
-              className="w-full text-sm text-orange-600 hover:text-orange-700 font-medium"
-            >
-              + नया शिविर जोड़ें
-            </button>
-          </div>
-        </div>
+        {/* yaha se changes start hue hai */}
+        {/* नया शिविर जोड़ें का option हटा दिया गया है */}
+        {/* niche yaha tak hue hai */}
       </div>
     </div>
   );

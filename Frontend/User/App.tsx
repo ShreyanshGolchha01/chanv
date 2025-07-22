@@ -87,7 +87,7 @@ fetch(serverUrl + '/chkusr.php', {
                     return;
                 }
                 const s = responseJson.split(",");
-                console.log( s[2])
+                console.log( s[1])
                 AsyncStorage.setItem('cid', s[0]);
                 AsyncStorage.setItem('mobile', s[1]);
                 AsyncStorage.setItem('usertype', s[2]);

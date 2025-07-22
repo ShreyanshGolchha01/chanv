@@ -122,42 +122,71 @@ const Users: React.FC = () => {
   const EnhancedDataTable: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
-    const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-    const [formData, setFormData] = useState({
-      name: '',
-      employeeId: '',
-      email: '',
-      phone: '',
+    //yaha se change start hua hai - added filter states (removed role filter)
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
       department: '',
-      joiningDate: '',
+      joiningYear: ''
     });
+    //yaha tak
+    //yaha se change start hua hai - removed showRegistrationForm state and formData state
     const itemsPerPage = 10;
+    //yaha tak
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      console.log('Form submitted:', formData);
-      // Here you would typically make an API call to save the user
-      setFormData({
-        name: '',
-        employeeId: '',
-        email: '',
-        phone: '',
-        department: '',
-        joiningDate: '',
-      });
-      setShowRegistrationForm(false);
-    };
-
-    const filteredData = mockUsers.filter((user) =>
-      Object.values(user).some((value) =>
+    //yaha se change start hua hai - enhanced filtering with multiple filter options (removed role filter)
+    const filteredData = mockUsers.filter((user) => {
+      const matchesSearch = Object.values(user).some((value) =>
         String(value).toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+      );
+      
+      const matchesDepartment = !filters.department || 
+        (user.department && user.department.toLowerCase().includes(filters.department.toLowerCase()));
+      
+      const matchesJoiningYear = !filters.joiningYear || 
+        (user.joiningDate && new Date(user.joiningDate).getFullYear().toString() === filters.joiningYear);
+      
+      return matchesSearch && matchesDepartment && matchesJoiningYear;
+    });
+    //yaha tak
+
+    //yaha se change start hua hai - added filter reset function and departments list (updated with government departments)
+    const resetFilters = () => {
+      setFilters({
+        department: '',
+        joiningYear: ''
+      });
+    };
+
+    const departments = [
+      'सामान्य प्रशासन विभाग',
+      'गृह विभाग',
+      'वित्त विभाग',
+      'स्वास्थ्य एवं परिवार कल्याण विभाग',
+      'स्कूल शिक्षा विभाग',
+      'उच्च शिक्षा विभाग',
+      'तकनीकी शिक्षा विभाग',
+      'वन विभाग',
+      'राजस्व एवं आपदा प्रबंधन विभाग',
+      'खाद्य, नागरिक आपूर्ति एवं उपभोक्ता संरक्षण विभाग',
+      'कृषि विभाग',
+      'पंचायत एवं ग्रामीण विकास विभाग',
+      'श्रम विभाग',
+      'महिला एवं बाल विकास विभाग',
+      'जनजातीय कार्य विभाग',
+      'अनुसूचित जाति एवं अन्य पिछड़ा वर्ग विकास विभाग',
+      'ऊर्जा विभाग',
+      'जल संसाधन विभाग',
+      'लोक निर्माण विभाग',
+      'परिवहन विभाग',
+      'नगर प्रशासन विभाग',
+      'सूचना प्रौद्योगिकी विभाग',
+      'पर्यटन विभाग',
+      'खेल एवं युवा कल्याण विभाग',
+      'उद्योग विभाग'
+    ];
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({length: 10}, (_, i) => currentYear - i);
+    //yaha tak
 
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -166,88 +195,75 @@ const Users: React.FC = () => {
 
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-        {/* User Registration Section */}
+        {/* Search Section */}
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setShowRegistrationForm(!showRegistrationForm)}
-              className="btn-primary"
-            >
-              {showRegistrationForm ? 'फॉर्म बंद करें' : 'नया कर्मचारी जोड़ें'}
-            </button>
-            <input
-              type="text"
-              placeholder="कर्मचारी खोजें..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full max-w-md input-field ml-4"
-            />
-          </div>
-
-          {/* Collapsible Registration Form */}
-          {showRegistrationForm && (
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
-              <input
-                type="text"
-                placeholder="नाम"
-                className="input-field"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-              <input
-                type="text"
-                placeholder="कर्मचारी आईडी"
-                className="input-field"
-                name="employeeId"
-                value={formData.employeeId}
-                onChange={handleInputChange}
-                required
-              />
-              <input
-                type="email"
-                placeholder="ईमेल"
-                className="input-field"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-              />
-              <input
-                type="tel"
-                placeholder="फोन नंबर"
-                className="input-field"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                required
-              />
-              <select
-                className="input-field"
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">विभाग चुनें</option>
-              </select>
-              <input
-                type="date"
-                placeholder="कार्यग्रहण तिथि"
-                className="input-field"
-                name="joiningDate"
-                value={formData.joiningDate}
-                onChange={handleInputChange}
-                required
-              />
-              <div className="col-span-full flex justify-end">
-                <button type="submit" className="btn-primary">
-                  कर्मचारी जोड़ें
+          {/* yaha se change start hua hai - enhanced search section with filters */}
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <input
+                  type="text"
+                  placeholder="कर्मचारी खोजें..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full max-w-md input-field"
+                />
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <span>फिल्टर</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                 </button>
               </div>
-            </form>
-          )}
+              {(filters.department || filters.joiningYear) && (
+                <button
+                  onClick={resetFilters}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  फिल्टर साफ़ करें
+                </button>
+              )}
+            </div>
+
+            {/* Filters Section */}
+            {showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    विभाग
+                  </label>
+                  <select
+                    value={filters.department}
+                    onChange={(e) => setFilters({...filters, department: e.target.value})}
+                    className="input-field"
+                  >
+                    <option value="">सभी विभाग</option>
+                    {departments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    कार्यग्रहण वर्ष
+                  </label>
+                  <select
+                    value={filters.joiningYear}
+                    onChange={(e) => setFilters({...filters, joiningYear: e.target.value})}
+                    className="input-field"
+                  >
+                    <option value="">सभी वर्ष</option>
+                    {years.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+          {/* yaha tak */}
         </div>
 
         {/* Table */}
@@ -353,7 +369,7 @@ const Users: React.FC = () => {
               <Building className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Departments</p>
+              <p className="text-sm font-medium text-gray-600">विभाग</p>
               <p className="text-2xl font-bold text-gray-900">0</p>
             </div>
           </div>

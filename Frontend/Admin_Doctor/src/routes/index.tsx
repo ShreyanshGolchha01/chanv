@@ -14,7 +14,7 @@ import AdminLayout from '../layouts/AdminLayout';
 // Doctor Portal imports
 import DoctorLogin from '../pages/DoctorLogin';
 import DoctorDashboard from '../pages/DoctorDashboard';
-import NewCamp from '../pages/NewCamp';
+// import NewCamp from '../pages/NewCamp';
 import PatientsManagement from '../pages/PatientsManagement';
 import DoctorActivities from '../pages/DoctorActivities';
 import HealthRecords from '../pages/HealthRecords';
@@ -118,10 +118,6 @@ export const router = createBrowserRouter([
         element: <DoctorDashboard />,
       },
       // Placeholder routes - will create these pages next
-      {
-        path: 'new-camp',
-        element: <NewCamp />,
-      },
       {
         path: 'patients',
         element: <PatientsManagement />,

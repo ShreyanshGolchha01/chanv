@@ -18,7 +18,7 @@ export interface Doctor {
   email: string;
   avatar?: string;
   experience: number;
-  qualification: string;
+  qualification: string[];
   assignedCamps: string[];
 }
 

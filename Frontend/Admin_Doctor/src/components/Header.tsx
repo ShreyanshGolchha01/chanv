@@ -36,10 +36,10 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuClick }) => {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100">
+          {/* <button className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100">
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-          </button>
+          </button> */}
 
           {/* User Profile */}
           <div className="flex items-center space-x-3">
