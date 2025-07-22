@@ -7,7 +7,7 @@ import type { Doctor, TableColumn } from '../types/interfaces';
 import serverUrl from './Server';
 import axios from 'axios';
 const Doctors: React.FC = () => {
-  const [doctors, setDoctors] = useState(mockDoctors);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [deletingDoctor, setDeletingDoctor] = useState<Doctor | null>(null);
@@ -22,6 +22,42 @@ const Doctors: React.FC = () => {
     qualification: '',
     assignedCamps: [] as string[],
   });
+
+  //=================use effect to load data
+  useEffect(() => {
+  const fetchDoctors = async () => {
+    try {
+      const endpoint = `${serverUrl}show_doctor.php`;
+      const response = await axios.post(endpoint, {});
+      const data = response.data;
+      
+
+    if (data.posts && Array.isArray(data.posts)) {
+      const newDoctor: Doctor[] = data.posts.map((post: any) => ({
+       id: post.id,
+      name: post.name,
+      specialty: post.specialty,
+      phone: post.phone,
+      email: post.email,
+      experience: parseInt(post.experience, 10),
+      qualification: post.qualification,
+      assignedCamps: post.assignedCamps,
+      }));
+      setDoctors([...doctors, ...newDoctor]);
+    }
+
+
+   
+    } catch (error) {
+      console.error("Error fetching doctors:", error);
+    }
+  };
+
+  fetchDoctors();
+}, []);
+
+//////end of use effect
+
 
   const handleAddDoctor = async () => {
   const newDoctor: Doctor = {
@@ -79,34 +115,86 @@ const Doctors: React.FC = () => {
 };
 
 
-  const handleEditDoctor = () => {
-    if (!editingDoctor) return;
+  const handleEditDoctor = async () => {
+  if (!editingDoctor) return;
 
-    const updatedDoctors = doctors.map(doctor =>
-      doctor.id === editingDoctor.id
-        ? {
-            ...doctor,
-            name: formData.name,
-            specialty: formData.specialty,
-            phone: formData.phone,
-            email: formData.email,
-            experience: parseInt(formData.experience),
-            qualification: formData.qualification,
-            assignedCamps: formData.assignedCamps,
-          }
-        : doctor
-    );
+  // 1. Hit your PHP endpoint
+  const endpoint = `${serverUrl}update_doctor.php`;
 
-    setDoctors(updatedDoctors);
-    setEditingDoctor(null);
-    resetForm();
-  };
+  const response = await axios.post(endpoint, {
+    id: editingDoctor.id,                   // or editingDoctor.id
+    name: formData.name,
+    specialty: formData.specialty,
+    phone: formData.phone,
+    email: formData.email,
+    experience: parseInt(formData.experience, 10),
+    qualification: formData.qualification,
+    assignedCamps: formData.assignedCamps,
+    status: 'active',                  // tweak if you store statuses
+  });
 
-  const handleDeleteDoctor = () => {
-    if (!deletingDoctor) return;
-    setDoctors(doctors.filter(doctor => doctor.id !== deletingDoctor.id));
-    setDeletingDoctor(null);
-  };
+  alert('Doctor details have been updated!!');
+
+  // 2. Convert the response to your Doctor[] shape
+  const data = response.data;
+  const newDoctors: Doctor[] = data.posts.map((post: any) => ({
+    id: post.id,
+    name: post.name,
+    specialty: post.specialty,
+    phone: post.phone,
+    email: post.email,
+    experience: parseInt(post.experience, 10),
+    qualification: post.qualification,
+    assignedCamps: post.assignedCamps,
+    status: post.status ?? 'active',
+  }));
+
+  // 3. Update local state (replace the edited doctor, then append any new ones)
+  setDoctors([
+    ...doctors.filter(d => d.id !== editingDoctor.id),
+    ...newDoctors,
+  ]);
+
+  // 4. Reset UI state
+  setEditingDoctor(null);
+  resetForm();
+};
+
+
+  const handleDeleteDoctor = async () => {
+  const endpoint = `${serverUrl}delete_doctor.php`;
+  if (!deletingDoctor) return;
+  
+  try {
+    const response = await axios.post(endpoint, {
+      id: deletingDoctor.id,
+    });
+
+    alert('Doctor has been deleted!!');
+
+    const data = response.data;
+
+    const newDoctors: Doctor[] = data.posts.map((post: any) => ({
+      id: post.id,
+      name: post.name,
+      specialty: post.specialty,
+      phone: post.phone,
+      email: post.email,
+      experience: parseInt(post.experience, 10),
+      qualification: post.qualification,
+      assignedCamps: post.assignedCamps,
+    }));
+
+    setDoctors([...newDoctors]);
+  } catch (error) {
+    console.error('Error deleting doctor:', error);
+    alert('Failed to delete doctor.');
+  }
+
+  // setDeletingDoctor(null);
+  resetForm();
+};
+
 
   const resetForm = () => {
     setFormData({
@@ -190,7 +278,7 @@ const Doctors: React.FC = () => {
       sortable: false,
       render: (value: string[]) => (
         <div className="space-y-1">
-          {value.slice(0, 2).map(campId => {
+          {/* {value.slice(0, 2).map(campId => {
             const camp = getCampById(campId);
             return camp ? (
               <div key={campId} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -203,7 +291,7 @@ const Doctors: React.FC = () => {
           )}
           {value.length === 0 && (
             <span className="text-xs text-gray-400">नियुक्त नहीं</span>
-          )}
+          )} */}
         </div>
       ),
     },
