@@ -138,7 +138,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>नमस्ते,</Text>
-          <Text style={styles.userName}>{userName.split(' ')[0]} जी</Text>
+{/*           <Text style={styles.userName}>{userName.split(' ')[0]} जी</Text> */}
         </View>
 
         {/* Next Camps Section */}
