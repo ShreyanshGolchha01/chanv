@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons, MaterialIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
-import { userAPI, handleAPIError } from '../services/api';
+//import { userAPI, handleAPIError } from '../services/api';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -22,7 +22,7 @@ interface ProfileScreenProps {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
-  // Real employee data from backend - will be populated from API
+  // Employee data - will be empty initially
   const [employeeData, setEmployeeData] = useState({
     id: '',
     name: '',
@@ -37,35 +37,38 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
     emergencyContact: ''
   });
 
-  // Real family members data from backend - will be populated from API
+  // Family members data
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
+ const [loading, setLoading] = useState(false);
 
-  // Load user profile data from backend
+  // Remove backend integration - data will be loaded locally
   useEffect(() => {
-    loadProfileData();
+    // Component initialization without API calls
+    //loadProfileData();
+    setLoading(false);
   }, []);
 
-  const loadProfileData = async () => {
-    try {
-      setLoading(true);
-      // Get user profile data
-      const profileResponse = await userAPI.getProfile();
-      if (profileResponse.success) {
-        setEmployeeData(profileResponse.data);
-      }
+  // const loadProfileData = async () => {
+  //   try {
+  //     setLoading(true);
+  //     // Get user profile data
+  //     const profileResponse = await userAPI.getProfile();
+  //     if (profileResponse.success) {
+  //       setEmployeeData(profileResponse.data);
+  //     }
 
-      // Get family members data (from health records)
-      const healthResponse = await userAPI.getHealthRecords();
-      if (healthResponse.success && healthResponse.data.familyMembers) {
-        setFamilyMembers(healthResponse.data.familyMembers || []);
-      }
-    } catch (error) {
-      console.error('Error loading profile data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     // Get family members data (from health records)
+  //     const healthResponse = await userAPI.getHealthRecords();
+  //     if (healthResponse.success && healthResponse.data.familyMembers) {
+  //       setFamilyMembers(healthResponse.data.familyMembers || []);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error loading profile data:', error);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',

@@ -17,7 +17,6 @@ import SchemesScreen from './SchemesScreen';
 import ProfileScreen from './ProfileScreen';
 import ReportDetailsScreen from './ReportDetailsScreen';
 import NotificationScreen from './NotificationScreen';
-import { adminAPI, reportsAPI, handleAPIError } from '../services/api';
 
 interface HomeScreenProps {
   userName: string;
@@ -43,45 +42,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
   const flatListRef = React.useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fetch real data from backend
+  // Remove backend integration - data will be loaded locally
   useEffect(() => {
-    fetchData();
+    // Component initialization without API calls
+    setLoading(false);
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch camps data
-      const campsResponse = await adminAPI.getAllCamps();
-      if (campsResponse.success) {
-        // Filter upcoming camps
-        const upcoming = campsResponse.camps?.filter((camp: any) => {
-          const campDate = new Date(camp.date);
-          const today = new Date();
-          return campDate >= today;
-        }) || [];
-        setNextCamps(upcoming);
-      }
-
-      // Fetch user reports
-      const reportsResponse = await reportsAPI.getUserReports();
-      if (reportsResponse.success) {
-        // Filter previous reports
-        const previous = reportsResponse.reports?.filter((report: any) => {
-          const reportDate = new Date(report.date);
-          const today = new Date();
-          return reportDate < today;
-        }) || [];
-        setPreviousReports(previous);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Don't show error to user, just log it
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Auto scroll function - disabled
   // React.useEffect(() => {

@@ -13,7 +13,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { adminAPI } from '../services/api';
 
 // Empty data - Connect to your backend  
 const appliedSchemes: any[] = [];
@@ -31,24 +30,11 @@ const SchemesScreen: React.FC<SchemesScreenProps> = ({ onBack }) => {
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load schemes data from backend
+  // Remove backend integration - data will be loaded locally
   useEffect(() => {
-    loadSchemesData();
+    // Component initialization without API calls
+    setLoading(false);
   }, []);
-
-  const loadSchemesData = async () => {
-    try {
-      setLoading(true);
-      const response = await adminAPI.getSchemes();
-      if (response.success) {
-        setSchemes(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading schemes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const renderNewSchemeCard = ({ item }: { item: any }) => (
     <LinearGradient

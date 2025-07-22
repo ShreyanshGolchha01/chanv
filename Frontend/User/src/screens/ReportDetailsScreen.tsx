@@ -12,7 +12,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons, MaterialIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
-import { reportsAPI } from '../services/api';
 
 // Empty medical report data - Connect to your backend
 const medicalReportData = {
@@ -44,26 +43,11 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
   const [reportDetails, setReportDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load report details from backend
+  // Remove backend integration - data will be loaded locally  
   useEffect(() => {
-    if (reportData?.id) {
-      loadReportDetails(reportData.id);
-    }
+    // Component initialization without API calls
+    setLoading(false);
   }, [reportData]);
-
-  const loadReportDetails = async (reportId: string) => {
-    try {
-      setLoading(true);
-      const response = await reportsAPI.getReportById(reportId);
-      if (response.success) {
-        setReportDetails(response.data);
-      }
-    } catch (error) {
-      console.error('Error loading report details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Use real data if available, fallback to empty structure
   const currentReportData = reportDetails || medicalReportData;
