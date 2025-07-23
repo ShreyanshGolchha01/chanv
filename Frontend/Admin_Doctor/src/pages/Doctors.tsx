@@ -15,6 +15,8 @@ const Doctors: React.FC = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    hospitalType: '',
+    hospitalName: '',
     specialty: '',
     phone: '',
     email: '',
@@ -37,10 +39,12 @@ const Doctors: React.FC = () => {
       const newDoctor: Doctor[] = data.posts.map((post: any) => ({
        id: post.id,
       name: post.name,
+      hospitalType: post.hospitalType,
+      hospitalName: post.hospitalName,
       specialty: post.specialty,
       phone: post.phone,
       email: post.email,
-      experience: parseInt(post.experience, 10),
+      experience: Number(post.experience) || 0,
       qualification: Array.isArray(post.qualification) ? post.qualification : [post.qualification],  //yaha change kiya hu
       assignedCamps: post.assignedCamps,
       }));
@@ -64,11 +68,13 @@ const Doctors: React.FC = () => {
   const newDoctor: Doctor = {
     id: '0',
     name: formData.name,
+    hospitalType: formData.hospitalType,
+    hospitalName: formData.hospitalName,
     specialty: formData.specialty,
     phone: formData.phone,
     email: formData.email,
     password: formData.password,
-    experience: parseInt(formData.experience, 10),
+    experience: Number(formData.experience) || 0,
     qualification: formData.qualification,
     assignedCamps: formData.assignedCamps,
   };
@@ -82,11 +88,13 @@ const Doctors: React.FC = () => {
     const response = await axios.post(endpoint, {
       id: '0',
       name: formData.name,
+      hospitalType: formData.hospitalType,
+      hospitalName: formData.hospitalName,
       specialty: formData.specialty,
       phone: formData.phone,
       email: formData.email,
       password: formData.password,
-      experience: parseInt(formData.experience, 10),
+      experience: Number(formData.experience) || 0,
       qualification: formData.qualification.join(','), // Convert array to comma-separated string for API
       assignedCamps: formData.assignedCamps,
     });
@@ -130,6 +138,8 @@ const Doctors: React.FC = () => {
   const response = await axios.post(endpoint, {
     id: editingDoctor.id,                   // or editingDoctor.id
     name: formData.name,
+    hospitalType: formData.hospitalType,
+    hospitalName: formData.hospitalName,
     specialty: formData.specialty,
     phone: formData.phone,
     email: formData.email,
@@ -147,6 +157,8 @@ const Doctors: React.FC = () => {
   const newDoctors: Doctor[] = data.posts.map((post: any) => ({
     id: post.id,
     name: post.name,
+    hospitalType: post.hospitalType,
+    hospitalName: post.hospitalName,
     specialty: post.specialty,
     phone: post.phone,
     email: post.email,
@@ -213,6 +225,8 @@ const Doctors: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
+      hospitalType: '',
+      hospitalName: '',
       specialty: '',
       phone: '',
       email: '',
@@ -227,6 +241,8 @@ const Doctors: React.FC = () => {
     setEditingDoctor(doctor);
     setFormData({
       name: doctor.name,
+      hospitalType: doctor.hospitalType || '',
+      hospitalName: doctor.hospitalName || '',
       specialty: doctor.specialty,
       phone: doctor.phone,
       email: doctor.email,
@@ -248,6 +264,11 @@ const Doctors: React.FC = () => {
           <div className="ml-4">
             <p className="font-medium text-gray-900">{value}</p>
             <p className="text-sm text-gray-500">{row.qualification.join(', ')}</p>
+            {row.hospitalName && (
+              <p className="text-xs text-gray-400">
+                {row.hospitalType === 'government' ? 'सरकारी' : 'निजी'} - {row.hospitalName}
+              </p>
+            )}
           </div>
         </div>
       ),
@@ -470,6 +491,34 @@ const qualifications = [
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="input-field"
                     placeholder="डॉक्टर का पूरा नाम दर्ज करें"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    अस्पताल का प्रकार
+                  </label>
+                  <select
+                    value={formData.hospitalType}
+                    onChange={(e) => setFormData({ ...formData, hospitalType: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="">अस्पताल का प्रकार चुनें</option>
+                    <option value="government">सरकारी</option>
+                    <option value="private">निजी</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    अस्पताल का नाम
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.hospitalName}
+                    onChange={(e) => setFormData({ ...formData, hospitalName: e.target.value })}
+                    className="input-field"
+                    placeholder="अस्पताल का नाम दर्ज करें"
                   />
                 </div>
 

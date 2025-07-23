@@ -21,8 +21,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: LayoutDashboard, label: 'डैशबोर्ड', path: '/admin/dashboard' },
     { icon: MapPin, label: 'शिविर', path: '/admin/camps' },
     { icon: Stethoscope, label: 'डॉक्टर', path: '/admin/doctors' },
-    { icon: Users, label: 'उपयोगकर्ता', path: '/admin/users' },
-    { icon: FileText, label: 'योजनाएं', path: '/admin/schemes' },
+    { icon: Users, label: 'मरीज़', path: '/admin/users' },
+    // { icon: FileText, label: 'योजनाएं', path: '/admin/schemes' },
     { icon: BarChart3, label: 'रिपोर्ट', path: '/admin/reports' },
   ];
 

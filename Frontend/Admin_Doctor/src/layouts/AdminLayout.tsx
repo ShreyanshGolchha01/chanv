@@ -17,7 +17,7 @@ const AdminLayout: React.FC = () => {
       case '/admin/doctors':
         return 'डॉक्टर';
       case '/admin/users':
-        return 'उपयोगकर्ता';
+        return 'मरीज़';
       case '/admin/schemes':
         return 'योजनाएं';
       case '/admin/reports':

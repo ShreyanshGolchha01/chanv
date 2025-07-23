@@ -67,6 +67,7 @@ const UnifiedLogin: React.FC = () => {
     });
  
     const data = response.data;
+    console.log('Login response:', data); // Debug log
 
     if (data.role == 'admin') {
     
@@ -81,18 +82,18 @@ const UnifiedLogin: React.FC = () => {
       );
       
       window.location.href = '/dashboard';
-    } else if (data.role == 'doctor') {
+    } else if (data.role == 'doctor') { // Changed from 'doctor' to 'Doctor'
 
       localStorage.setItem('isDoctorAuthenticated', 'true');
       localStorage.setItem(
         'userInfo',
         JSON.stringify({
-          name: data.name,
-          email: data.email,
+          name: data.user?.name || data.name,
+          email: data.user?.email || data.email,
           role: 'doctor',
-          specialization: data.specialization,
-          registrationNo:data.registrationNo
-
+          specialty: data.user?.specialty || data.specialty,
+          phone: data.user?.phone || data.phone,
+          id: data.user?.id || data.id
         })
       );
      
@@ -105,9 +106,16 @@ const UnifiedLogin: React.FC = () => {
      
     
   } catch (error: any) {
-   // alert(""+error.message)
-    console.error('Login failed:', error.response?.data?.message || error.message);
-    alert('Login failed. कृपया सही जानकारी दें।');
+    console.error('Login error:', error);
+    console.error('Error response:', error.response?.data);
+    
+    if (error.response?.status === 401) {
+      alert('गलत ईमेल या पासवर्ड। कृपया सही जानकारी दें।');
+    } else if (error.response?.data?.error) {
+      alert(`Login failed: ${error.response.data.error}`);
+    } else {
+      alert('Login failed. कृपया सही जानकारी दें।');
+    }
   } finally {
     setIsLoading(false);
   }

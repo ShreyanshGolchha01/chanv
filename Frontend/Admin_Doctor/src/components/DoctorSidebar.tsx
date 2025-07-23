@@ -4,7 +4,6 @@ import {
   LayoutDashboard,  
   Users, 
   Heart, 
-  UserPlus,
   LogOut,
   Stethoscope,
   User,
@@ -23,8 +22,7 @@ const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isOpen, onClose }) => {
     // { icon: MapPin, label: 'नया शिविर', path: '/doctor/new-camp' },
     { icon: Users, label: 'मरीज़ प्रबंधन', path: '/doctor/patients' },
     { icon: Heart, label: 'स्वास्थ्य रिकॉर्ड', path: '/doctor/health-records' },
-    { icon: UserPlus, label: 'पारिवारिक स्वास्थ्य', path: '/doctor/family-health' },
-    { icon: Activity, label: 'सभी गतिविधि', path: '/doctor/activities' },
+    // { icon: Activity, label: 'सभी गतिविधि', path: '/doctor/activities' },
     { icon: User, label: 'प्रोफाइल', path: '/doctor/profile' },
   ];
   // niche yaha tak hue hai

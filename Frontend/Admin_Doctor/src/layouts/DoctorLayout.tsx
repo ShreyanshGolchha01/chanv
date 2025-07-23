@@ -18,8 +18,6 @@ const DoctorLayout: React.FC = () => {
         return 'मरीज़ प्रबंधन';
       case '/doctor/health-records':
         return 'स्वास्थ्य रिकॉर्ड';
-      case '/doctor/family-health':
-        return 'पारिवारिक स्वास्थ्य';
       case '/doctor/profile':
         return 'प्रोफाइल';
       default:

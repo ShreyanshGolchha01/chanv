@@ -262,23 +262,6 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={onBack}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={COLORS.gradients.primary.colors}
-          start={COLORS.gradients.primary.start}
-          end={COLORS.gradients.primary.end}
-          style={styles.backButtonGradient}
-        >
-          <Ionicons name="arrow-back" size={20} color={COLORS.white} />
-          <Text style={styles.backButtonText}>वापस जाएं</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-      
       {/* Camp Info Card */}
       <LinearGradient
         colors={COLORS.gradients.card.colors}
@@ -698,27 +681,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
   },
   backToListText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.white,
-    fontWeight: FONTS.weights.medium,
-    marginLeft: SPACING.xs,
-  },
-  backButton: {
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-    overflow: 'hidden',
-    alignSelf: 'flex-start',
-    ...SHADOWS.medium,
-  },
-  backButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-  },
-  backButtonText: {
     fontSize: FONTS.sizes.sm,
     color: COLORS.white,
     fontWeight: FONTS.weights.medium,

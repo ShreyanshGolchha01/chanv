@@ -26,8 +26,9 @@ interface HealthRecord {
   gender: 'male' | 'female';
   phone: string;
   address: string;
+  camp: string;
   visitDate: string;
-  checkupType: 'routine' | 'followup' | 'emergency' | 'screening';
+  checkupType: 'routine' | 'emergency' | 'screening' | 'other';
   vitals: {
     bloodPressure: string;
     heartRate: number;
@@ -35,14 +36,13 @@ interface HealthRecord {
     weight: number;
     height: number;
     bmi: number;
+    customTests: { [key: string]: string };
   };
   symptoms: string[];
   diagnosis: string;
   medications: string[];
-  nextVisit: string;
   status: 'healthy' | 'stable' | 'needs-attention' | 'critical';
   doctorNotes: string;
-  followUpRequired: boolean;
 }
 
 const HealthRecords: React.FC = () => {
@@ -52,6 +52,11 @@ const HealthRecords: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(null);
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  
+  // State for dynamic vital signs
+  const [selectedVitalTest, setSelectedVitalTest] = useState('');
+  const [vitalTestValue, setVitalTestValue] = useState('');
+  const [customVitals, setCustomVitals] = useState<{ [key: string]: string }>({});
 
   // Form state for new record
   const [formData, setFormData] = useState({
@@ -61,8 +66,9 @@ const HealthRecords: React.FC = () => {
     gender: 'male' as 'male' | 'female',
     phone: '',
     address: '',
+    camp: '',
     visitDate: '',
-    checkupType: 'routine' as 'routine' | 'followup' | 'emergency' | 'screening',
+    checkupType: 'routine' as 'routine' | 'emergency' | 'screening' | 'other',
     bloodPressure: '',
     heartRate: '',
     temperature: '',
@@ -71,10 +77,8 @@ const HealthRecords: React.FC = () => {
     symptoms: '',
     diagnosis: '',
     medications: '',
-    nextVisit: '',
     status: 'stable' as 'healthy' | 'stable' | 'needs-attention' | 'critical',
-    doctorNotes: '',
-    followUpRequired: false
+    doctorNotes: ''
   });
 
   // Function to handle form input changes
@@ -149,6 +153,52 @@ const HealthRecords: React.FC = () => {
     return Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
   };
 
+  // Available vital sign tests
+  const availableVitalTests = [
+    { value: 'bloodPressure', label: 'रक्तचाप (Blood Pressure)', unit: 'mmHg' },
+    { value: 'heartRate', label: 'हृदय गति (Heart Rate)', unit: 'bpm' },
+    { value: 'temperature', label: 'तापमान (Temperature)', unit: '°F' },
+    { value: 'weight', label: 'वजन (Weight)', unit: 'kg' },
+    { value: 'height', label: 'कद (Height)', unit: 'cm' },
+    { value: 'bloodSugar', label: 'रक्त शुगर (Blood Sugar)', unit: 'mg/dL' },
+    // { value: 'cholesterol', label: 'कोलेस्ट्रॉल (Cholesterol)', unit: 'mg/dL' },
+    // { value: 'hemoglobin', label: 'हीमोग्लोबिन (Hemoglobin)', unit: 'g/dL' },
+    // { value: 'oxygenSaturation', label: 'ऑक्सीजन संतृप्ति (Oxygen Saturation)', unit: '%' },
+    // { value: 'respiratoryRate', label: 'श्वसन दर (Respiratory Rate)', unit: '/min' },
+    // { value: 'plateletCount', label: 'प्लेटलेट काउंट (Platelet Count)', unit: '/μL' },
+    // { value: 'whiteBloodCells', label: 'सफेद रक्त कोशिकाएं (WBC)', unit: '/μL' },
+    // { value: 'redBloodCells', label: 'लाल रक्त कोशिकाएं (RBC)', unit: '/μL' },
+    // { value: 'urea', label: 'यूरिया (Urea)', unit: 'mg/dL' },
+    // { value: 'creatinine', label: 'क्रिएटिनिन (Creatinine)', unit: 'mg/dL' },
+    // { value: 'bilirubin', label: 'बिलीरुबिन (Bilirubin)', unit: 'mg/dL' },
+    // { value: 'protein', label: 'प्रोटीन (Protein)', unit: 'g/dL' },
+    // { value: 'albumin', label: 'एल्ब्युमिन (Albumin)', unit: 'g/dL' }
+  ];
+
+  // Function to add a vital test
+  const addVitalTest = () => {
+    if (selectedVitalTest && vitalTestValue.trim()) {
+      const testInfo = availableVitalTests.find(test => test.value === selectedVitalTest);
+      if (testInfo) {
+        setCustomVitals(prev => ({
+          ...prev,
+          [selectedVitalTest]: `${vitalTestValue.trim()} ${testInfo.unit}`
+        }));
+        setSelectedVitalTest('');
+        setVitalTestValue('');
+      }
+    }
+  };
+
+  // Function to remove a vital test
+  const removeVitalTest = (testKey: string) => {
+    setCustomVitals(prev => {
+      const updated = { ...prev };
+      delete updated[testKey];
+      return updated;
+    });
+  };
+
   // Function to generate unique ID
   const generateId = (): string => {
     const lastId = healthRecords.length > 0 
@@ -171,6 +221,7 @@ const HealthRecords: React.FC = () => {
       gender: formData.gender,
       phone: formData.phone,
       address: formData.address,
+      camp: formData.camp,
       visitDate: formData.visitDate,
       checkupType: formData.checkupType,
       vitals: {
@@ -179,15 +230,14 @@ const HealthRecords: React.FC = () => {
         temperature: Number(formData.temperature),
         weight: weight,
         height: height,
-        bmi: bmi
+        bmi: bmi,
+        customTests: customVitals
       },
       symptoms: formData.symptoms ? formData.symptoms.split(',').map(s => s.trim()) : [],
       diagnosis: formData.diagnosis,
       medications: formData.medications ? formData.medications.split(',').map(m => m.trim()) : [],
-      nextVisit: formData.nextVisit,
       status: formData.status,
-      doctorNotes: formData.doctorNotes,
-      followUpRequired: formData.followUpRequired
+      doctorNotes: formData.doctorNotes
     };
 
     setHealthRecords(prev => [...prev, newRecord]);
@@ -201,6 +251,7 @@ const HealthRecords: React.FC = () => {
       gender: 'male',
       phone: '',
       address: '',
+      camp: '',
       visitDate: '',
       checkupType: 'routine',
       bloodPressure: '',
@@ -211,11 +262,14 @@ const HealthRecords: React.FC = () => {
       symptoms: '',
       diagnosis: '',
       medications: '',
-      nextVisit: '',
       status: 'stable',
-      doctorNotes: '',
-      followUpRequired: false
+      doctorNotes: ''
     });
+    
+    // Reset custom vitals
+    setCustomVitals({});
+    setSelectedVitalTest('');
+    setVitalTestValue('');
   };
 
   const filteredRecords = healthRecords.filter(record => {
@@ -257,9 +311,9 @@ const HealthRecords: React.FC = () => {
   const getCheckupTypeText = (type: string) => {
     switch (type) {
       case 'routine': return 'नियमित';
-      case 'followup': return 'फॉलो-अप';
       case 'emergency': return 'आपातकाल';
       case 'screening': return 'स्क्रीनिंग';
+      case 'other': return 'अन्य';
       default: return 'अन्य';
     }
   };
@@ -268,8 +322,7 @@ const HealthRecords: React.FC = () => {
     totalRecords: healthRecords.length,
     healthyPatients: healthRecords.filter(r => r.status === 'healthy').length,
     needsAttention: healthRecords.filter(r => r.status === 'needs-attention').length,
-    criticalCases: healthRecords.filter(r => r.status === 'critical').length,
-    followUpsRequired: healthRecords.filter(r => r.followUpRequired).length
+    criticalCases: healthRecords.filter(r => r.status === 'critical').length
   };
 
   return (
@@ -296,7 +349,7 @@ const HealthRecords: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card border border-gray-400 bg-blue-50">
           <div className="flex items-center justify-between">
             <div>
@@ -334,16 +387,6 @@ const HealthRecords: React.FC = () => {
               <p className="text-2xl font-bold text-red-900">{statistics.criticalCases}</p>
             </div>
             <Heart className="h-8 w-8 text-red-600" />
-          </div>
-        </div>
-        
-        <div className="card border border-gray-400 bg-purple-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600 mb-1">फॉलो-अप</p>
-              <p className="text-2xl font-bold text-purple-900">{statistics.followUpsRequired}</p>
-            </div>
-            <Calendar className="h-8 w-8 text-purple-600" />
           </div>
         </div>
       </div>
@@ -384,9 +427,9 @@ const HealthRecords: React.FC = () => {
             >
               <option value="all">सभी चेकअप टाइप</option>
               <option value="routine">नियमित</option>
-              <option value="followup">फॉलो-अप</option>
               <option value="emergency">आपातकाल</option>
               <option value="screening">स्क्रीनिंग</option>
+              <option value="other">अन्य</option>
             </select>
           </div>
           
@@ -457,33 +500,60 @@ const HealthRecords: React.FC = () => {
                       <div className="text-sm text-gray-500">
                         {getCheckupTypeText(record.checkupType)}
                       </div>
-                      {record.followUpRequired && (
-                        <div className="text-xs text-green-600 mt-1 flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          अगली विजिट: {new Date(record.nextVisit).toLocaleDateString('hi-IN')}
-                        </div>
-                      )}
                     </div>
                   </td>
                   
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1 text-xs">
-                      <div className="flex items-center">
-                        <Stethoscope className="h-3 w-3 mr-1 text-gray-400" />
-                        BP: {record.vitals.bloodPressure}
-                      </div>
-                      <div className="flex items-center">
-                        <Heart className="h-3 w-3 mr-1 text-red-400" />
-                        HR: {record.vitals.heartRate} bpm
-                      </div>
-                      <div className="flex items-center">
-                        <Thermometer className="h-3 w-3 mr-1 text-yellow-400" />
-                        Temp: {record.vitals.temperature}°F
-                      </div>
-                      <div className="flex items-center">
-                        <Weight className="h-3 w-3 mr-1 text-purple-400" />
-                        BMI: {record.vitals.bmi}
-                      </div>
+                      {/* Display basic vitals if they exist */}
+                      {record.vitals.bloodPressure && (
+                        <div className="flex items-center">
+                          <Stethoscope className="h-3 w-3 mr-1 text-gray-400" />
+                          BP: {record.vitals.bloodPressure}
+                        </div>
+                      )}
+                      {record.vitals.heartRate && (
+                        <div className="flex items-center">
+                          <Heart className="h-3 w-3 mr-1 text-red-400" />
+                          HR: {record.vitals.heartRate} bpm
+                        </div>
+                      )}
+                      {record.vitals.temperature && (
+                        <div className="flex items-center">
+                          <Thermometer className="h-3 w-3 mr-1 text-yellow-400" />
+                          Temp: {record.vitals.temperature}°F
+                        </div>
+                      )}
+                      {/* record.vitals.bmi && (
+                        <div className="flex items-center">
+                          <Weight className="h-3 w-3 mr-1 text-purple-400" />
+                          BMI: {record.vitals.bmi}
+                        </div>
+                      ) */}
+                      
+                      {/* Display custom vitals */}
+                      {record.vitals.customTests && Object.entries(record.vitals.customTests).slice(0, 2).map(([testKey, value]) => {
+                        const testInfo = availableVitalTests.find(test => test.value === testKey);
+                        return (
+                          <div key={testKey} className="flex items-center">
+                            <Activity className="h-3 w-3 mr-1 text-blue-400" />
+                            {testInfo ? testInfo.label.split('(')[0].trim() : testKey}: {value}
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Show count if more tests exist */}
+                      {record.vitals.customTests && Object.keys(record.vitals.customTests).length > 2 && (
+                        <div className="text-gray-400 text-xs">
+                          +{Object.keys(record.vitals.customTests).length - 2} और टेस्ट...
+                        </div>
+                      )}
+                      
+                      {/* Show message if no vitals */}
+                      {!record.vitals.bloodPressure && !record.vitals.heartRate && !record.vitals.temperature && 
+                       !record.vitals.bmi && (!record.vitals.customTests || Object.keys(record.vitals.customTests).length === 0) && (
+                        <div className="text-gray-400 text-xs">कोई टेस्ट रिपोर्ट नहीं</div>
+                      )}
                     </div>
                   </td>
                   
@@ -594,32 +664,69 @@ const HealthRecords: React.FC = () => {
                 {/* Vitals */}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3">महत्वपूर्ण संकेतक</h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-blue-600">{selectedRecord.vitals.bloodPressure}</div>
-                      <div className="text-gray-500">रक्तचाप</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-red-600">{selectedRecord.vitals.heartRate}</div>
-                      <div className="text-gray-500">हृदय गति (bpm)</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-yellow-600">{selectedRecord.vitals.temperature}°F</div>
-                      <div className="text-gray-500">तापमान</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-purple-600">{selectedRecord.vitals.weight} kg</div>
-                      <div className="text-gray-500">वजन</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-green-600">{selectedRecord.vitals.height} cm</div>
-                      <div className="text-gray-500">कद</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-indigo-600">{selectedRecord.vitals.bmi}</div>
-                      <div className="text-gray-500">BMI</div>
-                    </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    {/* Basic vitals */}
+                    {/* {selectedRecord.vitals.bloodPressure && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-blue-600">{selectedRecord.vitals.bloodPressure}</div>
+                        <div className="text-gray-500">रक्तचाप</div>
+                      </div>
+                    )}
+                    {selectedRecord.vitals.heartRate && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-red-600">{selectedRecord.vitals.heartRate}</div>
+                        <div className="text-gray-500">हृदय गति (bpm)</div>
+                      </div>
+                    )}
+                    {selectedRecord.vitals.temperature && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-yellow-600">{selectedRecord.vitals.temperature}°F</div>
+                        <div className="text-gray-500">तापमान</div>
+                      </div>
+                    )} */}
+                    {/* {selectedRecord.vitals.weight && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-purple-600">{selectedRecord.vitals.weight} kg</div>
+                        <div className="text-gray-500">वजन</div>
+                      </div>
+                    )} */}
+                    {/* {selectedRecord.vitals.height && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-green-600">{selectedRecord.vitals.height} cm</div>
+                        <div className="text-gray-500">कद</div>
+                      </div>
+                    )} */}
+                    {/* {selectedRecord.vitals.bmi && (
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-indigo-600">{selectedRecord.vitals.bmi}</div>
+                        <div className="text-gray-500">BMI</div>
+                      </div>
+                    )} */}
+                    
+                    {/* Custom vitals */}
+                    {selectedRecord.vitals.customTests && Object.entries(selectedRecord.vitals.customTests).map(([testKey, value]) => {
+                      const testInfo = availableVitalTests.find(test => test.value === testKey);
+                      return (
+                        <div key={testKey} className="text-center">
+                          <div className="font-bold text-lg text-teal-600">{value}</div>
+                          <div className="text-gray-500 text-xs">
+                            {testInfo ? testInfo.label.split('(')[0].trim() : testKey}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                  
+                  {/* Show message if no vitals */}
+                  {!selectedRecord.vitals.bloodPressure && !selectedRecord.vitals.heartRate && 
+                   !selectedRecord.vitals.temperature && !selectedRecord.vitals.weight && 
+                   !selectedRecord.vitals.height && !selectedRecord.vitals.bmi &&
+                   (!selectedRecord.vitals.customTests || Object.keys(selectedRecord.vitals.customTests).length === 0) && (
+                    <div className="text-center py-4 text-gray-500">
+                      <Activity className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p>कोई टेस्ट रिपोर्ट उपलब्ध नहीं है</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Diagnosis & Treatment */}
@@ -834,11 +941,26 @@ const HealthRecords: React.FC = () => {
 
                 {/* Visit Information */}
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-4">विजिट की जानकारी</h4>
+                  <h4 className="font-medium text-gray-900 mb-4">कैंप की जानकारी</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        विजिट की तारीख *
+                        कैंप का नाम *
+                      </label>
+                      <input
+                        type="text"
+                        name="camp"
+                        value={formData.camp}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="कैंप का नाम दर्ज करें"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        कैंप की तारीख *
                       </label>
                       <input
                         type="date"
@@ -862,23 +984,10 @@ const HealthRecords: React.FC = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         <option value="routine">नियमित चेकअप</option>
-                        <option value="followup">फॉलो-अप</option>
                         <option value="emergency">आपातकाल</option>
                         <option value="screening">स्क्रीनिंग</option>
+                        <option value="other">अन्य</option>
                       </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        अगली विजिट
-                      </label>
-                      <input
-                        type="date"
-                        name="nextVisit"
-                        value={formData.nextVisit}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
                     </div>
                   </div>
                 </div>
@@ -886,91 +995,105 @@ const HealthRecords: React.FC = () => {
                 {/* Vital Signs */}
                 <div className="bg-yellow-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-4">महत्वपूर्ण संकेतक</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        रक्तचाप
-                      </label>
-                      <input
-                        type="text"
-                        name="bloodPressure"
-                        value={formData.bloodPressure}
-                        onChange={handleInputChange}
-                        placeholder="120/80"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        हृदय गति (bpm)
-                      </label>
-                      <input
-                        type="number"
-                        name="heartRate"
-                        value={formData.heartRate}
-                        onChange={handleInputChange}
-                        min="40"
-                        max="200"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        तापमान (°F)
-                      </label>
-                      <input
-                        type="number"
-                        name="temperature"
-                        value={formData.temperature}
-                        onChange={handleInputChange}
-                        step="0.1"
-                        min="90"
-                        max="110"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        वजन (kg)
-                      </label>
-                      <input
-                        type="number"
-                        name="weight"
-                        value={formData.weight}
-                        onChange={handleInputChange}
-                        step="0.1"
-                        min="1"
-                        max="300"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        कद (cm)
-                      </label>
-                      <input
-                        type="number"
-                        name="height"
-                        value={formData.height}
-                        onChange={handleInputChange}
-                        min="50"
-                        max="250"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
+                  
+                  {/* Add New Vital Test */}
+                  <div className="mb-6 p-4 bg-white rounded-lg border border-yellow-200">
+                    <h5 className="font-medium text-gray-800 mb-3">नया टेस्ट जोड़ें</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <select
+                          value={selectedVitalTest}
+                          onChange={(e) => setSelectedVitalTest(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        >
+                          <option value="">टेस्ट चुनें</option>
+                          {availableVitalTests.map((test) => (
+                            <option key={test.value} value={test.value}>
+                              {test.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {selectedVitalTest && (
+                        <div>
+                          <input
+                            type="text"
+                            value={vitalTestValue}
+                            onChange={(e) => setVitalTestValue(e.target.value)}
+                            placeholder={`मान दर्ज करें (${availableVitalTests.find(t => t.value === selectedVitalTest)?.unit})`}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                        </div>
+                      )}
+                      
+                      {selectedVitalTest && vitalTestValue && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={addVitalTest}
+                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span>जोड़ें</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
-                  {formData.weight && formData.height && (
+                  {/* Display Added Vital Tests */}
+                  {Object.keys(customVitals).length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="font-medium text-gray-800 mb-3">जोड़े गए टेस्ट</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {Object.entries(customVitals).map(([testKey, value]) => {
+                          const testInfo = availableVitalTests.find(test => test.value === testKey);
+                          return (
+                            <div key={testKey} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {testInfo?.label}
+                                </div>
+                                <div className="text-lg font-bold text-green-600">
+                                  {value}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeVitalTest(testKey)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                                title="हटाएं"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* BMI Calculation for Weight and Height */}
+                  {customVitals.weight && customVitals.height && (
                     <div className="mt-3 p-3 bg-white rounded-lg border">
                       <span className="text-sm text-gray-600">
                         BMI: <span className="font-bold text-lg text-green-600">
-                          {calculateBMI(Number(formData.weight), Number(formData.height))}
+                          {(() => {
+                            const weight = parseFloat(customVitals.weight.split(' ')[0]);
+                            const height = parseFloat(customVitals.height.split(' ')[0]);
+                            return weight && height ? calculateBMI(weight, height) : 'N/A';
+                          })()}
                         </span>
                       </span>
+                    </div>
+                  )}
+                  
+                  {Object.keys(customVitals).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <Activity className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                      <p>कोई टेस्ट नहीं जोड़ा गया है</p>
+                      <p className="text-sm">ऊपर से टेस्ट चुनें और मान दर्ज करें</p>
                     </div>
                   )}
                 </div>
@@ -1053,19 +1176,6 @@ const HealthRecords: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="अतिरिक्त टिप्पणियां और सुझाव..."
                     />
-                  </div>
-                  
-                  <div className="mt-4 flex items-center">
-                    <input
-                      type="checkbox"
-                      name="followUpRequired"
-                      checked={formData.followUpRequired}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                    />
-                    <label className="ml-2 block text-sm text-gray-700">
-                      फॉलो-अप की आवश्यकता है
-                    </label>
                   </div>
                 </div>
 

@@ -203,7 +203,7 @@ const Users: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <input
                   type="text"
-                  placeholder="कर्मचारी खोजें..."
+                  placeholder="मरीज़ खोजें..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full max-w-md input-field"
@@ -340,7 +340,7 @@ const Users: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">उपयोगकर्ता और स्वास्थ्य रिकॉर्ड</h1>
+          <h1 className="text-2xl font-bold text-gray-900">मरीज़ और स्वास्थ्य रिकॉर्ड</h1>
           <p className="text-gray-600">कर्मचारी स्वास्थ्य रिकॉर्ड और परिवार का डेटा देखें</p>
         </div>
         <button className="btn-primary flex items-center space-x-2">

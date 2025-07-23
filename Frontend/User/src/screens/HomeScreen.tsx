@@ -133,7 +133,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
           <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>पिछली रिपोर्ट्स</Text>
             <TouchableOpacity 
-              onPress={() => setShowReportDetails(true)}
+              onPress={() => {
+                setActiveTab('reports');
+                setShowReports(true);
+                setShowSchemes(false);
+                setShowProfile(false);
+                setShowReportDetails(false);
+                setShowNotifications(false);
+              }}
               style={styles.moreTextButton}
             >
               <Text style={styles.moreButtonText}>अधिक</Text>

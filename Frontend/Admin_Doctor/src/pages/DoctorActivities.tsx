@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   Search, 
@@ -32,6 +32,12 @@ const DoctorActivities: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+
+  // Show modal when component mounts
+  useEffect(() => {
+    setShowComingSoonModal(true);
+  }, []);
 
   // Empty activities data - Connect to your backend
   const allActivities: ActivityItem[] = [];
@@ -306,6 +312,36 @@ const DoctorActivities: React.FC = () => {
           <p className="text-sm text-gray-600">पारिवारिक जांच</p>
         </div>
       </div>
+
+      {/* Coming Soon Modal */}
+      {showComingSoonModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
+            <div className="text-center">
+              <div className="mb-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Clock className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  जल्द ही सेवा में
+                </h3>
+                <p className="text-gray-600">
+                  यह सुविधा जल्द ही उपलब्ध होगी। कृपया बाद में प्रयास करें।
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowComingSoonModal(false);
+                  navigate('/doctor-dashboard');
+                }}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                ठीक है
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

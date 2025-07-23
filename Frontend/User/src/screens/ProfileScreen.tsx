@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { Ionicons, MaterialIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 //import { userAPI, handleAPIError } from '../services/api';
 
 interface ProfileScreenProps {
@@ -73,10 +73,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
   const [newMember, setNewMember] = useState({
     name: '',
     relation: '',
+    dateOfBirth: '',
     age: '',
     bloodGroup: '',
-    phoneNumber: '',
-    aadharNumber: ''
+    gender: '',
+    phoneNumber: ''
   });
 
   const handleAddMember = () => {
@@ -91,10 +92,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
       setNewMember({
         name: '',
         relation: '',
+        dateOfBirth: '',
         age: '',
         bloodGroup: '',
-        phoneNumber: '',
-        aadharNumber: ''
+        gender: '',
+        phoneNumber: ''
       });
       setShowAddMemberModal(false);
       Alert.alert('सफलता', 'परिवारिक सदस्य सफलतापूर्वक जोड़ा गया।');
@@ -117,7 +119,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           end={COLORS.gradients.primary.end}
           style={styles.employeeAvatar}
         >
-          <FontAwesome5 name="user" size={40} color={COLORS.white} />
+          <MaterialIcons name="account-circle" size={40} color={COLORS.white} />
         </LinearGradient>
         <View style={styles.employeeInfo}>
           <Text style={styles.employeeName}>{employeeData.name}</Text>
@@ -138,7 +140,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.primary + '20', COLORS.primary + '10']}
             style={styles.detailIcon}
           >
-            <FontAwesome5 name="id-badge" size={16} color={COLORS.primary} />
+            <MaterialIcons name="work" size={25} color={COLORS.primary} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>कर्मचारी ID</Text>
@@ -151,7 +153,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.healthBlue + '20', COLORS.healthBlue + '10']}
             style={styles.detailIcon}
           >
-            <Ionicons name="call" size={16} color={COLORS.healthBlue} />
+            <MaterialIcons name="phone" size={25} color={COLORS.healthBlue} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>फोन नंबर</Text>
@@ -164,7 +166,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.accent + '20', COLORS.accent + '10']}
             style={styles.detailIcon}
           >
-            <MaterialIcons name="email" size={16} color={COLORS.accent} />
+            <MaterialIcons name="mail" size={25} color={COLORS.accent} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>ईमेल</Text>
@@ -177,7 +179,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.healthGreen + '20', COLORS.healthGreen + '10']}
             style={styles.detailIcon}
           >
-            <Ionicons name="location" size={16} color={COLORS.healthGreen} />
+            <MaterialIcons name="place" size={25} color={COLORS.healthGreen} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>पता</Text>
@@ -190,7 +192,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.warning + '20', COLORS.warning + '10']}
             style={styles.detailIcon}
           >
-            <Ionicons name="calendar" size={16} color={COLORS.warning} />
+            <MaterialIcons name="today" size={25} color={COLORS.warning} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>ज्वाइनिंग डेट</Text>
@@ -203,7 +205,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             colors={[COLORS.error + '20', COLORS.error + '10']}
             style={styles.detailIcon}
           >
-            <FontAwesome5 name="tint" size={16} color={COLORS.error} />
+            <MaterialIcons name="opacity" size={25} color={COLORS.error} />
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>ब्लड ग्रुप</Text>
@@ -229,10 +231,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           end={COLORS.gradients.accent.end}
           style={styles.memberAvatar}
         >
-          <FontAwesome5 
-            name={member.relation === 'पत्नी' ? 'female' : 
-                  member.relation === 'पुत्र' ? 'male' : 
-                  member.relation === 'पुत्री' ? 'female' : 'user'} 
+          <MaterialIcons 
+            name="account-circle" 
             size={24} 
             color={COLORS.white} 
           />
@@ -248,24 +248,24 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
 
       <View style={styles.memberDetails}>
         <View style={styles.memberDetailRow}>
-          <FontAwesome5 name="tint" size={14} color={COLORS.error} />
+          <MaterialIcons name="opacity" size={14} color={COLORS.error} />
           <Text style={styles.memberDetailText}>ब्लड ग्रुप: {member.bloodGroup}</Text>
         </View>
         
         {member.phoneNumber && (
           <View style={styles.memberDetailRow}>
-            <Ionicons name="call" size={14} color={COLORS.healthBlue} />
+            <MaterialIcons name="phone" size={14} color={COLORS.healthBlue} />
             <Text style={styles.memberDetailText}>फोन: {member.phoneNumber}</Text>
           </View>
         )}
         
         <View style={styles.memberDetailRow}>
-          <FontAwesome5 name="id-card" size={14} color={COLORS.primary} />
+          <MaterialIcons name="credit-card" size={14} color={COLORS.primary} />
           <Text style={styles.memberDetailText}>आधार: {member.aadharNumber}</Text>
         </View>
         
         <View style={styles.memberDetailRow}>
-          <MaterialIcons name="assignment" size={14} color={COLORS.accent} />
+          <MaterialIcons name="local-hospital" size={14} color={COLORS.accent} />
           <Text style={styles.memberDetailText}>हेल्थ ID: {member.healthId}</Text>
         </View>
       </View>
@@ -298,7 +298,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>नया सदस्य जोड़ें</Text>
             <TouchableOpacity onPress={() => setShowAddMemberModal(false)}>
-              <AntDesign name="close" size={24} color={COLORS.textPrimary} />
+              <MaterialIcons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
 
@@ -326,6 +326,17 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             </View>
 
             <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>जन्म तारीख *</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newMember.dateOfBirth}
+                onChangeText={(text) => setNewMember({...newMember, dateOfBirth: text})}
+                placeholder="DD/MM/YYYY"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>उम्र *</Text>
               <TextInput
                 style={styles.textInput}
@@ -338,12 +349,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>ब्लड ग्रुप</Text>
+              <Text style={styles.inputLabel}>ब्लड ग्रुप *</Text>
               <TextInput
                 style={styles.textInput}
                 value={newMember.bloodGroup}
                 onChangeText={(text) => setNewMember({...newMember, bloodGroup: text})}
                 placeholder="ब्लड ग्रुप दर्ज करें (जैसे: A+, B-, O+)"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>लिंग *</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newMember.gender}
+                onChangeText={(text) => setNewMember({...newMember, gender: text})}
+                placeholder="लिंग दर्ज करें (पुरुष/महिला)"
                 placeholderTextColor={COLORS.textSecondary}
               />
             </View>
@@ -357,18 +379,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
                 placeholder="फोन नंबर दर्ज करें"
                 placeholderTextColor={COLORS.textSecondary}
                 keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>आधार नंबर</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.aadharNumber}
-                onChangeText={(text) => setNewMember({...newMember, aadharNumber: text})}
-                placeholder="आधार नंबर दर्ज करें"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="numeric"
               />
             </View>
           </ScrollView>
@@ -428,7 +438,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
                 end={COLORS.gradients.primary.end}
                 style={styles.addIconGradient}
               >
-                <AntDesign name="plus" size={18} color={COLORS.white} />
+                <MaterialIcons name="person-add" size={18} color={COLORS.white} />
                 <Text style={styles.addIconText}>नया सदस्य जोड़ें</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -498,7 +508,6 @@ const styles = StyleSheet.create({
   addIconButton: {
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-    ...SHADOWS.small,
   },
   addIconGradient: {
     flexDirection: 'row',
@@ -532,7 +541,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-    ...SHADOWS.medium,
   },
   employeeInfo: {
     flex: 1,
@@ -557,7 +565,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.round,
-    ...SHADOWS.small,
   },
   statusText: {
     fontSize: FONTS.sizes.xs,
@@ -579,7 +586,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-    ...SHADOWS.small,
   },
   detailContent: {
     flex: 1,
@@ -614,7 +620,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-    ...SHADOWS.small,
   },
   memberInfo: {
     flex: 1,
@@ -757,7 +762,6 @@ const styles = StyleSheet.create({
   logoutButton: {
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-    ...SHADOWS.medium,
   },
   logoutGradient: {
     flexDirection: 'row',

@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
       changeType: 'neutral' as const,
     },
     {
-      title: 'कुल उपयोगकर्ता',
+      title: 'कुल मरीज़',
       value: mockKPIData.totalUsers,
       icon: Users,
       color: 'bg-green-500',

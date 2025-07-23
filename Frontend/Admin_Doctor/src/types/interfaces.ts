@@ -13,6 +13,8 @@ export interface User {
 export interface Doctor {
   id: string;
   name: string;
+  hospitalType?: string;
+  hospitalName?: string;
   specialty: string;
   phone: string;
   email: string;

@@ -121,12 +121,6 @@ const DoctorProfile: React.FC = () => {
     }));
   };
 
-  // Empty achievements array - Connect to your backend
-  const achievements: any[] = [];
-
-  // Empty activities array - Connect to your backend  
-  const recentActivities: any[] = [];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -245,26 +239,6 @@ const DoctorProfile: React.FC = () => {
             >
               व्यावसायिक जानकारी
             </button>
-            <button
-              onClick={() => setActiveTab('achievements')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'achievements'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              उपलब्धियां
-            </button>
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'activity'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              हाल की गतिविधि
-            </button>
           </nav>
         </div>
 
@@ -365,7 +339,7 @@ const DoctorProfile: React.FC = () => {
                   )}
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">रक्त समूह</label>
                   {isEditing ? (
                     <select
@@ -386,9 +360,9 @@ const DoctorProfile: React.FC = () => {
                   ) : (
                     <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.personalInfo.bloodGroup}</p>
                   )}
-                </div>
+                </div> */}
 
-                <div className="md:col-span-2">
+                {/* <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <MapPin className="h-4 w-4 inline mr-2" />
                     पता
@@ -420,7 +394,7 @@ const DoctorProfile: React.FC = () => {
                   ) : (
                     <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.personalInfo.emergencyContact}</p>
                   )}
-                </div>
+                </div> */}
               </div>
             </div>
           )}
@@ -499,7 +473,7 @@ const DoctorProfile: React.FC = () => {
                   )}
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Building className="h-4 w-4 inline mr-2" />
                     वर्तमान अस्पताल
@@ -567,69 +541,7 @@ const DoctorProfile: React.FC = () => {
                       {doctorData.professionalInfo.languages.join(', ')}
                     </p>
                   )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Achievements Tab */}
-          {activeTab === 'achievements' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">उपलब्धियां और सम्मान</h3>
-              
-              <div className="space-y-4">
-                {achievements.length > 0 ? achievements.map((achievement, index) => {
-                  const IconComponent = achievement.icon;
-                  return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-yellow-100 p-3 rounded-full">
-                          <IconComponent className="h-6 w-6 text-yellow-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-900">{achievement.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{achievement.organization}</p>
-                          <p className="text-xs text-gray-500 mt-2">
-                            {new Date(achievement.date).toLocaleDateString('hi-IN')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }) : (
-                  <p className="text-gray-500 text-center py-8">कोई उपलब्धि उपलब्ध नहीं है</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Activity Tab */}
-          {activeTab === 'activity' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">हाल की गतिविधि</h3>
-              
-              <div className="space-y-4">
-                {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          activity.type === 'camp' ? 'bg-green-500' :
-                          activity.type === 'checkup' ? 'bg-blue-500' : 'bg-purple-500'
-                        }`}></div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{activity.activity}</h4>
-                          <p className="text-sm text-gray-600">{activity.patients} मरीज़ों की सेवा</p>
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        {new Date(activity.date).toLocaleDateString('hi-IN')}
-                      </span>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-gray-500 text-center py-8">कोई हाल की गतिविधि उपलब्ध नहीं है</p>
-                )}
+                </div> */}
               </div>
             </div>
           )}

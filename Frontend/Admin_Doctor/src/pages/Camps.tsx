@@ -173,18 +173,21 @@ const Camps: React.FC = () => {
         
         const newCamps: Camp[] = data.posts.map((post: any) => ({
           id: post.id,
+          campName: post.campName || post.location, // fallback to location if campName is missing
           location: post.location,
           date: post.DATE,
           time: `${post.startTime} - ${post.endTime}`,
           address: post.address,
           coordinator: post.coordinator,
           expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
-          doctors: formData.assignedDoctors,
-          status: 'scheduled',
-          beneficiaries: 0,
+          doctors: post.doctors ? post.doctors.split(',') : [],
+          services: post.services ? post.services.split(',') : [],
+          status: post.STATUS || 'scheduled',
+          beneficiaries: parseInt(post.beneficiaries || '0', 10),
         }));
 
-        setCamps((prevCamps) => [...prevCamps, ...newCamps]);
+        // Set the camps array directly, don't append to existing
+        setCamps(newCamps);
       } catch (error) {
         console.error("Error fetching camps:", error);
       }
@@ -275,7 +278,8 @@ useEffect(() => {
     beneficiaries: parseInt(post.beneficiaries || '0', 10),
   }));
 
-  setCamps([...camps, ...newCamps]);
+  // Replace entire camps array with updated data from backend
+  setCamps(newCamps);
   setShowAddModal(false);
   setIsLoading(false);
   resetForm();
@@ -329,7 +333,8 @@ useEffect(() => {
     beneficiaries: parseInt(post.beneficiaries || '0', 10),
   }));
 
-  setCamps([...camps.filter(c => c.id !== formData.id), ...newCamps]);
+  // Replace entire camps array with updated data from backend
+  setCamps(newCamps);
 
   setEditingCamp(null);
   setIsLoading(false);

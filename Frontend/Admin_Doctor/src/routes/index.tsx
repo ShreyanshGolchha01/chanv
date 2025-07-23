@@ -18,7 +18,6 @@ import DoctorDashboard from '../pages/DoctorDashboard';
 import PatientsManagement from '../pages/PatientsManagement';
 import DoctorActivities from '../pages/DoctorActivities';
 import HealthRecords from '../pages/HealthRecords';
-import FamilyHealth from '../pages/FamilyHealth';
 import DoctorProfile from '../pages/DoctorProfile';
 import DoctorLayout from '../layouts/DoctorLayout';
 
@@ -129,10 +128,6 @@ export const router = createBrowserRouter([
       {
         path: 'health-records',
         element: <HealthRecords />,
-      },
-      {
-        path: 'family-health',
-        element: <FamilyHealth />,
       },
       {
         path: 'profile',

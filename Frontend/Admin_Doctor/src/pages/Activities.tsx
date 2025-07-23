@@ -109,7 +109,7 @@ const Activities: React.FC = () => {
             >
               <option value="all">सभी गतिविधि</option>
               <option value="camp">शिविर संबंधी</option>
-              <option value="user">उपयोगकर्ता संबंधी</option>
+              <option value="user">मरीज़ संबंधी</option>
               <option value="doctor">डॉक्टर संबंधी</option>
             </select>
           </div>
@@ -167,7 +167,7 @@ const Activities: React.FC = () => {
                   {/* Status badge */}
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActivityColor(activity.type)}`}>
                     {activity.type === 'camp' ? 'शिविर' : 
-                     activity.type === 'user' ? 'उपयोगकर्ता' : 
+                     activity.type === 'user' ? 'मरीज़' : 
                      activity.type === 'doctor' ? 'डॉक्टर' : 'सामान्य'}
                   </span>
                 </div>
@@ -203,7 +203,7 @@ const Activities: React.FC = () => {
             <div className="text-2xl font-bold text-green-600 mb-2">
               {mockActivityLogs.filter(a => a.type === 'user').length}
             </div>
-            <div className="text-sm text-gray-600">उपयोगकर्ता संबंधी गतिविधि</div>
+            <div className="text-sm text-gray-600">मरीज़ संबंधी गतिविधि</div>
           </div>
         </div>
         

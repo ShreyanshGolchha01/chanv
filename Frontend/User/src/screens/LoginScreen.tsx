@@ -60,55 +60,67 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     return isValid;
   };
 
-  const handleLogin = async () => {
-    if (!validateForm()) {
+const handleLogin = async () => {
+  if (!validateForm()) return;
+
+  setIsLoading(true);
+
+  try {
+    const response = await fetch(serverUrl + '/chkusr.php', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        t1: phoneNumber,
+        t2: password
+      })
+    });
+
+    const responseText = await response.text();
+    console.log('Server response text:', responseText);
+
+    let responseJson;
+    try {
+      responseJson = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Response text:', responseText);
+      Alert.alert('त्रुटि', 'सर्वर से अमान्य जवाब मिला। कृपया पुनः प्रयास करें।');
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      // PHP backend API call
-      const response = await fetch(serverUrl + '/chkusr.php', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          t1: phoneNumber,
-          t2: password
-        })
-      });
+    console.log('Parsed response:', responseJson);
 
-      const responseJson = await response.json();
-      
-      if (responseJson == 0) {
-        Alert.alert('लॉगिन असफल', 'अमान्य फोन नंबर या पासवर्ड');
-        setIsLoading(false);
-        return;
-      }
-
-      const s = responseJson.split(",");
-      console.log('User type:', s[2]);
-      
-      // Store user data in AsyncStorage
-      await AsyncStorage.setItem('cid', s[0]);
-      await AsyncStorage.setItem('mobile', s[1]);
-      await AsyncStorage.setItem('usertype', s[2]);
-      
-      // Call success callback with user data
-      onLoginSuccess({ 
-        userName: phoneNumber // You can modify this based on your user data structure
-      });
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('त्रुटि', 'लॉगिन करने में समस्या हुई। कृपया पुनः प्रयास करें।');
-    } finally {
-      setIsLoading(false);
+    // Check if login failed (server returns "0")
+    if (responseJson === "0") {
+      Alert.alert('लॉगिन असफल', 'अमान्य फोन नंबर या पासवर्ड');
+      return;
     }
-  };
+
+    // Parse the response format: "id,name"
+    if (typeof responseJson === 'string' && responseJson !== "0") {
+      const [userId, userName] = responseJson.split(',');
+      
+      // Save data
+      await AsyncStorage.setItem('cid', userId);
+      await AsyncStorage.setItem('mobile', phoneNumber);
+      // await AsyncStorage.setItem('usertype', 'user');
+
+      // Success callback
+      onLoginSuccess({ userName: userName });
+    } else {
+      Alert.alert('लॉगिन असफल', 'अमान्य फोन नंबर या पासवर्ड');
+    }
+
+  } catch (error) {
+    console.error('Login error:', error);
+    Alert.alert('त्रुटि', 'लॉगिन करने में समस्या हुई। कृपया पुनः प्रयास करें।');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>

@@ -129,7 +129,7 @@ const DoctorDashboard: React.FC = () => {
       {/* yaha se changes start hue hai */}
       <div className="card border border-gray-400">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">त्वरित कार्य</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/doctor/patients')}
             className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors duration-200"
@@ -149,23 +149,12 @@ const DoctorDashboard: React.FC = () => {
               <p className="text-sm font-medium text-gray-700">स्वास्थ्य रिकॉर्ड</p>
             </div>
           </button>
-          
-          <button 
-            onClick={() => navigate('/doctor/family-health')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors duration-200"
-          >
-            <div className="text-center">
-              <UserPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700">पारिवारिक स्वास्थ्य</p>
-            </div>
-          </button>
         </div>
       </div>
       {/* niche yaha tak hue hai */}
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activities */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card border border-gray-400">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">आज की गतिविधि</h3>
@@ -203,14 +192,14 @@ const DoctorDashboard: React.FC = () => {
               सभी गतिविधि देखें →
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Upcoming Camps */}
         {/* yaha se changes start hue hai */}
         {/* नया शिविर जोड़ें का option हटा दिया गया है */}
         {/* niche yaha tak hue hai */}
       </div>
-    </div>
+    // </div>
   );
 };
 
