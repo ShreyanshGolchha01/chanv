@@ -210,7 +210,7 @@ const Dashboard: React.FC = () => {
       {/* Quick Actions */}
       <div className="card border border-gray-400">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">त्वरित कार्य</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/admin/camps')}
             className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors duration-200"
@@ -228,16 +228,6 @@ const Dashboard: React.FC = () => {
             <div className="text-center">
               <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm font-medium text-gray-700">नया डॉक्टर जोड़ें</p>
-            </div>
-          </button>
-          
-          <button 
-            onClick={() => navigate('/admin/schemes')}
-            className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-colors duration-200"
-          >
-            <div className="text-center">
-              <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-700">योजनाओं की समीक्षा करें</p>
             </div>
           </button>
         </div>
