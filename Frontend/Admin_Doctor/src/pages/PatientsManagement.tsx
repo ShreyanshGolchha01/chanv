@@ -20,7 +20,7 @@ import {
 
 
 const PatientsManagement: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -383,39 +383,62 @@ const endpoint = `${serverUrl}add_patient.php`;
     }
 
     try {
-      // Here you would make API call to add patient
-      // For now, we'll just add to local state
-      const newPatientEntry: Patient = {
-        id: (patients.length + 1).toString(),
+      setIsLoading(true);
+      
+      // Prepare API payload
+      const payload = {
         name: newPatientData.name,
-        email: '',
-        phone: newPatientData.phone || '',
-        password: '',
         dateOfBirth: newPatientData.dateOfBirth,
-        age: parseInt(newPatientData.age),
-        gender: newPatientData.gender,
+        age: newPatientData.age,
         bloodGroup: newPatientData.bloodGroup,
-        address: '',
-        lastVisit: new Date().toISOString(),
-        healthStatus: 'good',
-        familyMembers: 0,
-        department: '',
-        hasAbhaId: 'no',
-        hasAyushmanCard: 'no'
+        gender: newPatientData.gender,
+        phone: newPatientData.phone,
+        isRelative: isRelative,
+        relativePhone: relativePhone,
+        relation: relation
       };
 
-      setPatients([...patients, newPatientEntry]);
-      setShowAddPatientForm(false);
-      resetPatientForm();
-      
-      if (isRelative === 'yes') {
-        alert(`नया मरीज़ (${relation}) सफलतापूर्वक जोड़ा गया!`);
+      console.log('Sending payload:', payload);
+
+      const endpoint = `${serverUrl}add_patient_new.php`;
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('API Response:', response.data);
+
+      if (response.data.success) {
+        // Success - show appropriate message
+        if (isRelative === 'yes') {
+          alert(`रिश्तेदार (${relation}) सफलतापूर्वक जोड़ा गया!\nकर्मचारी: ${response.data.data.employeeName}`);
+        } else {
+          alert('नया मरीज़ सफलतापूर्वक जोड़ा गया!');
+        }
+
+        // Reset form and close modal
+        setShowAddPatientForm(false);
+        resetPatientForm();
+        
+        // Optionally refresh the patients list if needed
+        // fetchPatients();
+        
       } else {
-        alert('नया मरीज़ सफलतापूर्वक जोड़ा गया!');
+        alert(response.data.message || 'मरीज़ जोड़ते समय त्रुटि हुई।');
       }
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Error adding patient:', error);
-      alert('मरीज़ जोड़ते समय त्रुटि हुई।');
+      
+      // Check if it's an API error with response
+      if (error.response && error.response.data && error.response.data.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('मरीज़ जोड़ते समय त्रुटि हुई। कृपया फिर से कोशिश करें।');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1381,15 +1404,17 @@ const endpoint = `${serverUrl}add_patient.php`;
                     setShowAddPatientForm(false);
                     resetPatientForm();
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   रद्द करें
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  मरीज़ जोड़ें
+                  {isLoading ? 'जोड़ा जा रहा है...' : 'मरीज़ जोड़ें'}
                 </button>
               </div>
             </form>

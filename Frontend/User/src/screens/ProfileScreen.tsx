@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -89,13 +90,21 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
 
   useEffect(() => {
     loadProfileData();
+    loadFamilyMembers();
   }, []);
 
-  const loadProfileData = async () => {
+  const loadFamilyMembers = async () => {
     try {
-      setLoading(true);
+      const userId = await AsyncStorage.getItem('cid');
       
-      const response = await fetch('http://192.168.1.6/chanv/show_Patients.php', {
+      if (!userId) {
+        console.log('User ID not found');
+        return;
+      }
+      
+      console.log('Fetching family members for user ID:', userId);
+      
+      const response = await fetch(`http://192.168.1.9/chanv/get_family_members.php?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -103,152 +112,258 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch profile data');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Family members response:', data);
       
-      if (data.posts && data.posts.length > 0) {
+      if (data.success && data.familyMembers) {
+        // Convert API response to our FamilyMember interface
+        const formattedMembers: FamilyMember[] = data.familyMembers.map((member: any) => ({
+          id: member.r_id,
+          name: member.fullName,
+          relation: member.relation,
+          dateOfBirth: member.dateOfBirth,
+          age: member.age,
+          bloodGroup: member.bloodGroup || '',
+          gender: member.gender,
+          phoneNumber: member.phoneNumber,
+          healthId: `HEALTH${member.r_id.toString().padStart(3, '0')}`,
+          aadharNumber: undefined // Not stored in relatives table
+        }));
+        
+        setFamilyMembers(formattedMembers);
+        console.log('Family members loaded successfully:', formattedMembers.length);
+      } else {
+        console.log('No family members found or API error:', data.message);
+      }
+    } catch (error) {
+      console.error('Error loading family members:', error);
+    }
+  };
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      
+      // Get phone number from AsyncStorage - using 'mobile' key as per LoginScreen
+      const phoneNumber = await AsyncStorage.getItem('mobile');
+      
+      if (!phoneNumber) {
+        Alert.alert('Error', 'Phone number not found. Please login again.');
+        return;
+      }
+      
+      console.log('Fetching profile for phone:', phoneNumber);
+      
+      const response = await fetch(`http://192.168.1.9/chanv/show_profile.php?phoneNumber=${phoneNumber}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', data); // Debug log
+      
+      if (data.success && data.posts && data.posts.length > 0) {
         const userData = data.posts[0];
+        console.log('User Data:', userData); // Debug log
         
         setUserData({
           id: userData.id.toString(),
           name: userData.fullname || userData.name,
           fullname: userData.fullname || userData.name,
           designation: 'Employee',
-          department: userData.department,
-          phoneNumber: userData.phoneNumber || userData.phone,
-          email: userData.email,
-          address: userData.address,
+          department: userData.department || '',
+          phoneNumber: userData.phoneNumber || userData.phone || '',
+          email: userData.email || '',
+          address: userData.address || '',
           dateOfJoining: '',
-          bloodGroup: userData.bloodGroup,
+          bloodGroup: userData.bloodGroup || '',
           emergencyContact: '',
-          dateOfBirth: userData.dateOfBirth,
-          age: userData.age,
-          gender: userData.gender,
-          familyMembers: userData.familyMembers || userData.familymember,
-          hasAbhaId: userData.hasAbhaId,
-          hasAyushmanCard: userData.hasAyushmanCard
+          dateOfBirth: userData.dateOfBirth || '',
+          age: userData.age || 0,
+          gender: userData.gender || '',
+          familyMembers: userData.familyMembers || userData.familymember || 0,
+          hasAbhaId: userData.hasAbhaId === 'yes' || userData.hasAbhaId === true,
+          hasAyushmanCard: userData.hasAyushmanCard === 'yes' || userData.hasAyushmanCard === true
         });
 
-        // If your API returns family members, you can set them here
-        // For now, we'll keep the local family members functionality
+        console.log('Profile data loaded successfully');
+      } else {
+        console.error('API Error:', data.message || 'No data found');
+        Alert.alert('Error', data.message || 'No profile data found');
       }
     } catch (error) {
       console.error('Error loading profile data:', error);
-      Alert.alert('Error', 'Failed to load profile data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      Alert.alert('Error', `Failed to load profile data: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-// // const renderFamilyMember = (member: FamilyMember) => (
-//   <LinearGradient
-//     key={member.id.toString()}
-//     colors={COLORS.gradients.card.colors}
-//     start={COLORS.gradients.card.start}
-//     end={COLORS.gradients.card.end}
-//     style={styles.familyMemberCard}
-//   >
-//     <View style={styles.memberHeader}>
-//       <LinearGradient
-//         colors={COLORS.gradients.accent.colors}
-//         start={COLORS.gradients.accent.start}
-//         end={COLORS.gradients.accent.end}
-//         style={styles.memberAvatar}
-//       >
-//         <MaterialIcons 
-//           name="account-circle" 
-//           size={24} 
-//           color={COLORS.white} 
-//         />
-//       </LinearGradient>
-//       <View style={styles.memberInfo}>
-//         <Text style={styles.memberName}>{member.name}</Text>
-//         <Text style={styles.memberRelation}>{member.relation}</Text>
-//       </View>
-//       <View style={styles.memberAge}>
-//         <Text style={styles.ageText}>{member.age} वर्ष</Text>
-//       </View>
-//     </View>
+  const renderFamilyMember = (member: FamilyMember) => (
+    <LinearGradient
+      key={member.id.toString()}
+      colors={COLORS.gradients.card.colors}
+      start={COLORS.gradients.card.start}
+      end={COLORS.gradients.card.end}
+      style={styles.familyMemberCard}
+    >
+      <View style={styles.memberHeader}>
+        <LinearGradient
+          colors={COLORS.gradients.accent.colors}
+          start={COLORS.gradients.accent.start}
+          end={COLORS.gradients.accent.end}
+          style={styles.memberAvatar}
+        >
+          <MaterialIcons 
+            name="account-circle" 
+            size={24} 
+            color={COLORS.white} 
+          />
+        </LinearGradient>
+        <View style={styles.memberInfo}>
+          <Text style={styles.memberName}>{member.name}</Text>
+          <Text style={styles.memberRelation}>{member.relation}</Text>
+        </View>
+        <View style={styles.memberAge}>
+          <Text style={styles.ageText}>{member.age} वर्ष</Text>
+        </View>
+      </View>
 
-//     <View style={styles.memberDetails}>
-//       {member.bloodGroup && (
-//         <View style={styles.memberDetailRow}>
-//           <MaterialIcons name="opacity" size={14} color={COLORS.error} />
-//           <Text style={styles.memberDetailText}>ब्लड ग्रुप: {member.bloodGroup}</Text>
-//         </View>
-//       )}
-      
-//       {member.phoneNumber && (
-//         <View style={styles.memberDetailRow}>
-//           <MaterialIcons name="phone" size={14} color={COLORS.healthBlue} />
-//           <Text style={styles.memberDetailText}>फोन: {member.phoneNumber}</Text>
-//         </View>
-//       )}
-      
-//       {member.aadharNumber && (
-//         <View style={styles.memberDetailRow}>
-//           <MaterialIcons name="credit-card" size={14} color={COLORS.primary} />
-//           <Text style={styles.memberDetailText}>आधार: {member.aadharNumber}</Text>
-//         </View>
-//       )}
-      
-//       <View style={styles.memberDetailRow}>
-//         <MaterialIcons name="local-hospital" size={14} color={COLORS.accent} />
-//         <Text style={styles.memberDetailText}>हेल्थ ID: {member.healthId}</Text>
-//       </View>
+      <View style={styles.memberDetails}>
+        {member.bloodGroup && (
+          <View style={styles.memberDetailRow}>
+            <MaterialIcons name="opacity" size={14} color={COLORS.error} />
+            <Text style={styles.memberDetailText}>ब्लड ग्रुप: {member.bloodGroup}</Text>
+          </View>
+        )}
+        
+        {member.phoneNumber && (
+          <View style={styles.memberDetailRow}>
+            <MaterialIcons name="phone" size={14} color={COLORS.healthBlue} />
+            <Text style={styles.memberDetailText}>फोन: {member.phoneNumber}</Text>
+          </View>
+        )}
+        
+        {member.aadharNumber && (
+          <View style={styles.memberDetailRow}>
+            <MaterialIcons name="credit-card" size={14} color={COLORS.primary} />
+            <Text style={styles.memberDetailText}>आधार: {member.aadharNumber}</Text>
+          </View>
+        )}
+        
+        <View style={styles.memberDetailRow}>
+          <MaterialIcons name="local-hospital" size={14} color={COLORS.accent} />
+          <Text style={styles.memberDetailText}>हेल्थ ID: {member.healthId}</Text>
+        </View>
 
-//       {member.gender && (
-//         <View style={styles.memberDetailRow}>
-//           <MaterialIcons name="person" size={14} color={COLORS.accent} />
-//           <Text style={styles.memberDetailText}>लिंग: {member.gender}</Text>
-//         </View>
-//       )}
+        {member.gender && (
+          <View style={styles.memberDetailRow}>
+            <MaterialIcons name="person" size={14} color={COLORS.accent} />
+            <Text style={styles.memberDetailText}>लिंग: {member.gender}</Text>
+          </View>
+        )}
 
-//       {member.dateOfBirth && (
-//         <View style={styles.memberDetailRow}>
-//           <MaterialIcons name="cake" size={14} color={COLORS.warning} />
-//           <Text style={styles.memberDetailText}>जन्म तारीख: {member.dateOfBirth}</Text>
-//         </View>
-//       )}
-//     </View>
+        {member.dateOfBirth && (
+          <View style={styles.memberDetailRow}>
+            <MaterialIcons name="cake" size={14} color={COLORS.warning} />
+            <Text style={styles.memberDetailText}>जन्म तारीख: {member.dateOfBirth}</Text>
+          </View>
+        )}
+      </View>
 
-//     <TouchableOpacity 
-//       style={styles.editMemberButton}
-//       onPress={() => Alert.alert('संपादित करें', `${member.name} की जानकारी संपादित करें`)}
-//       activeOpacity={0.8}
-//     >
-//       <MaterialIcons name="edit" size={16} color={COLORS.primary} />
-//       <Text style={styles.editMemberText}>संपादित करें</Text>
-//     </TouchableOpacity>
-//   </LinearGradient>
-// // );
-   const handleAddMember = () => {
-    if (newMember.name && newMember.relation && newMember.age) {
-      const member: FamilyMember = {
-        id: familyMembers.length + 1,
-        name: newMember.name,
-        relation: newMember.relation,
-        dateOfBirth: newMember.dateOfBirth,
-        age: parseInt(newMember.age),
-        bloodGroup: newMember.bloodGroup,
-        gender: newMember.gender,
-        phoneNumber: newMember.phoneNumber,
-        healthId: `FAM00${familyMembers.length + 1}`
-      };
-      setFamilyMembers([...familyMembers, member]);
-      setNewMember({
-        name: '',
-        relation: '',
-        dateOfBirth: '',
-        age: '',
-        bloodGroup: '',
-        gender: '',
-        phoneNumber: ''
-      });
-      setShowAddMemberModal(false);
-      Alert.alert('सफलता', 'परिवारिक सदस्य सफलतापूर्वक जोड़ा गया।');
+      <TouchableOpacity 
+        style={styles.editMemberButton}
+        onPress={() => Alert.alert('संपादित करें', `${member.name} की जानकारी संपादित करें`)}
+        activeOpacity={0.8}
+      >
+        <MaterialIcons name="edit" size={16} color={COLORS.primary} />
+        <Text style={styles.editMemberText}>संपादित करें</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+  const handleAddMember = async () => {
+    if (newMember.name && newMember.relation && newMember.age && newMember.gender && newMember.phoneNumber) {
+      try {
+        const userId = await AsyncStorage.getItem('cid');
+        
+        if (!userId) {
+          Alert.alert('त्रुटि', 'User ID नहीं मिला। कृपया दोबारा लॉगिन करें।');
+          return;
+        }
+
+        // Calculate date of birth from age if not provided
+        let dateOfBirth = newMember.dateOfBirth;
+        if (!dateOfBirth && newMember.age) {
+          const currentYear = new Date().getFullYear();
+          const birthYear = currentYear - parseInt(newMember.age);
+          dateOfBirth = `${birthYear}-01-01`; // Default to January 1st
+        }
+
+        const requestData = {
+          userId: parseInt(userId),
+          fullName: newMember.name,
+          relation: newMember.relation,
+          dateOfBirth: dateOfBirth,
+          bloodGroup: newMember.bloodGroup || null,
+          gender: newMember.gender,
+          phoneNumber: newMember.phoneNumber
+        };
+
+        console.log('Adding family member:', requestData);
+
+        const response = await fetch('http://192.168.1.9/chanv/add_family.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Add family member response:', data);
+
+        if (data.success) {
+          // Clear form
+          setNewMember({
+            name: '',
+            relation: '',
+            dateOfBirth: '',
+            age: '',
+            bloodGroup: '',
+            gender: '',
+            phoneNumber: ''
+          });
+          
+          setShowAddMemberModal(false);
+          
+          // Reload family members
+          await loadFamilyMembers();
+          
+          Alert.alert('सफलता', 'परिवारिक सदस्य सफलतापूर्वक जोड़ा गया।');
+        } else {
+          Alert.alert('त्रुटि', data.message || 'परिवारिक सदस्य जोड़ने में समस्या हुई।');
+        }
+      } catch (error) {
+        console.error('Error adding family member:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        Alert.alert('त्रुटि', `परिवारिक सदस्य जोड़ने में समस्या: ${errorMessage}`);
+      }
     } else {
       Alert.alert('त्रुटि', 'कृपया सभी आवश्यक फील्ड भरें।');
     }
@@ -431,7 +546,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-          {/* {familyMembers.map(renderFamilyMember)} */}
+          {familyMembers.length > 0 ? (
+            familyMembers.map(renderFamilyMember)
+          ) : (
+            <LinearGradient
+              colors={COLORS.gradients.card.colors}
+              start={COLORS.gradients.card.start}
+              end={COLORS.gradients.card.end}
+              style={styles.emptyCard}
+            >
+              <MaterialIcons name="group" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyText}>कोई परिवारिक सदस्य नहीं मिला</Text>
+              <Text style={styles.emptySubText}>ऊपर दिए गए बटन से नया सदस्य जोड़ें</Text>
+            </LinearGradient>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -461,6 +589,138 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Add Family Member Modal */}
+      <Modal
+        visible={showAddMemberModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddMemberModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <LinearGradient
+            colors={COLORS.gradients.card.colors}
+            start={COLORS.gradients.card.start}
+            end={COLORS.gradients.card.end}
+            style={styles.modalContent}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>नया परिवारिक सदस्य जोड़ें</Text>
+              <TouchableOpacity 
+                onPress={() => setShowAddMemberModal(false)}
+                style={{ padding: SPACING.xs }}
+              >
+                <MaterialIcons name="close" size={24} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>नाम *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.name}
+                  onChangeText={(text) => setNewMember({...newMember, name: text})}
+                  placeholder="पूरा नाम दर्ज करें"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>रिश्ता *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.relation}
+                  onChangeText={(text) => setNewMember({...newMember, relation: text})}
+                  placeholder="जैसे: पिता, माता, भाई, बहन"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>उम्र *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.age}
+                  onChangeText={(text) => setNewMember({...newMember, age: text})}
+                  placeholder="उम्र दर्ज करें"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>लिंग *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.gender}
+                  onChangeText={(text) => setNewMember({...newMember, gender: text})}
+                  placeholder="male, female, या other"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>फोन नंबर *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.phoneNumber}
+                  onChangeText={(text) => setNewMember({...newMember, phoneNumber: text})}
+                  placeholder="10 अंकों का फोन नंबर"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>जन्म तारीख</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.dateOfBirth}
+                  onChangeText={(text) => setNewMember({...newMember, dateOfBirth: text})}
+                  placeholder="YYYY-MM-DD format में"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>ब्लड ग्रुप</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newMember.bloodGroup}
+                  onChangeText={(text) => setNewMember({...newMember, bloodGroup: text})}
+                  placeholder="जैसे: A+, B-, O+, AB-"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowAddMemberModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>रद्द करें</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.addButton}
+                onPress={handleAddMember}
+              >
+                <LinearGradient
+                  colors={COLORS.gradients.primary.colors}
+                  start={COLORS.gradients.primary.start}
+                  end={COLORS.gradients.primary.end}
+                  style={styles.addButtonGradient}
+                >
+                  <Text style={styles.addButtonText}>जोड़ें</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -760,6 +1020,29 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.weights.bold,
     color: COLORS.white,
     marginLeft: SPACING.sm,
+  },
+  emptyCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    backgroundColor: COLORS.white,
+    ...SHADOWS.medium,
+    elevation: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });
 

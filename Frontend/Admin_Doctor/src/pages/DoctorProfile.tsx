@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User,
   Mail,
   Phone,
-  MapPin,
-  Calendar,
-  Award,
-  BookOpen,
+  // MapPin,
+  // Calendar,
+  // Award,
+  // BookOpen,
   Clock,
   Edit3,
   Save,
@@ -16,11 +16,13 @@ import {
   GraduationCap,
   Building,
   FileText,
-  Star,
+  // Star,
   Activity,
   Users,
   Heart
 } from 'lucide-react';
+import serverUrl from './Server';
+import AsyncStorage from '../utils/AsyncStorage';
 
 interface DoctorProfileData {
   personalInfo: {
@@ -28,10 +30,6 @@ interface DoctorProfileData {
     email: string;
     phone: string;
     address: string;
-    dateOfBirth: string;
-    gender: 'male' | 'female' | '';
-    bloodGroup: string;
-    emergencyContact: string;
   };
   professionalInfo: {
     registrationNo: string;
@@ -39,9 +37,7 @@ interface DoctorProfileData {
     qualification: string;
     experience: string;
     currentHospital: string;
-    department: string;
-    joiningDate: string;
-    languages: string[];
+    hospitalType: string;
   };
   statistics: {
     totalPatients: number;
@@ -54,6 +50,38 @@ interface DoctorProfileData {
 const DoctorProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Get doctor email from AsyncStorage (set during login)
+  const [doctorEmail, setDoctorEmail] = useState<string>('');
+
+useEffect(() => {
+  const fetchDoctorEmail = async () => {
+    try {
+      const storedDoctorInfo = await AsyncStorage.getItem('userInfo');
+      if (storedDoctorInfo) {
+        const userInfo = JSON.parse(storedDoctorInfo);
+        if (userInfo?.email) {
+          setDoctorEmail(userInfo.email);
+          return;
+        }
+        else{
+          // Fallback to phone number if email is not available
+          setDoctorEmail('');
+          return;
+        }
+        
+      }
+      alert('लॉगिन जानकारी नहीं मिली। कृपया फिर से लॉगिन करें।');
+    } catch (error) {
+      console.error('AsyncStorage error:', error);
+      alert('लॉगिन जानकारी प्राप्त करने में त्रुटि हुई।');
+    }
+  };
+
+  fetchDoctorEmail();
+}, []);
 
   const [doctorData, setDoctorData] = useState<DoctorProfileData>({
     personalInfo: {
@@ -61,10 +89,6 @@ const DoctorProfile: React.FC = () => {
       email: '',
       phone: '',
       address: '',
-      dateOfBirth: '',
-      gender: '',
-      bloodGroup: '',
-      emergencyContact: ''
     },
     professionalInfo: {
       registrationNo: '',
@@ -72,9 +96,7 @@ const DoctorProfile: React.FC = () => {
       qualification: '',
       experience: '',
       currentHospital: '',
-      department: '',
-      joiningDate: '',
-      languages: []
+      hospitalType: '',
     },
     statistics: {
       totalPatients: 0,
@@ -86,12 +108,92 @@ const DoctorProfile: React.FC = () => {
 
   const [tempData, setTempData] = useState<DoctorProfileData>(doctorData);
 
+  // Fetch doctor profile data
+  const fetchDoctorProfile = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching profile for email:', doctorEmail); // Debug log
+      
+      if (!doctorEmail) {
+        console.error('No doctor email available for API call');
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch(`${serverUrl}/get_doctor_profile.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: doctorEmail })
+      });
+      
+      const data = await response.json();
+      console.log('Profile API response:', data); // Debug log
+      
+      if (data.success) {
+        setDoctorData(data.data);
+        setTempData(data.data);
+      } else {
+        console.error('Error fetching profile:', data.message);
+        alert('प्रोफाइल लोड करने में त्रुटि: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching doctor profile:', error);
+      alert('प्रोफाइल लोड करने में त्रुटि हुई');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load doctor profile when email is available
+  useEffect(() => {
+    console.log('useEffect triggered with doctorEmail:', doctorEmail); // Debug log
+    if (doctorEmail) {
+      fetchDoctorProfile();
+    }
+  }, [doctorEmail]);
+
+  // Also run on component mount
+  useEffect(() => {
+    if (doctorEmail) {
+      fetchDoctorProfile();
+    }
+  }, []);
+
   // Handle save changes
-  const handleSave = () => {
-    setDoctorData(tempData);
-    setIsEditing(false);
-    // Here you would typically save to backend
-    alert('प्रोफाइल सफलतापूर्वक अपडेट हो गई!');
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch(`${serverUrl}/update_doctor_profile.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: doctorEmail,
+          personalInfo: tempData.personalInfo,
+          professionalInfo: tempData.professionalInfo
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setDoctorData(tempData);
+        setIsEditing(false);
+        alert('प्रोफाइल सफलतापूर्वक अपडेट हो गई!');
+        // Refresh profile data to get updated statistics
+        fetchDoctorProfile();
+      } else {
+        alert('प्रोफाइल अपडेट करने में त्रुटि: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('प्रोफाइल अपडेट करने में त्रुटि हुई');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Handle cancel editing
@@ -121,6 +223,40 @@ const DoctorProfile: React.FC = () => {
     }));
   };
 
+  if (loading || !doctorEmail) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gray-200 rounded-2xl p-6 animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="w-24 h-24 bg-gray-300 rounded-full"></div>
+              <div>
+                <div className="h-8 bg-gray-300 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-gray-300 rounded w-32 mb-1"></div>
+                <div className="h-4 bg-gray-300 rounded w-24"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="card border border-gray-400 animate-pulse">
+              <div className="h-20 bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+        <div className="card border border-gray-400 animate-pulse">
+          <div className="h-96 bg-gray-200 rounded"></div>
+        </div>
+        {!doctorEmail && (
+          <div className="text-center">
+            <p className="text-gray-500">लॉगिन जानकारी लोड हो रही है...</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -146,6 +282,7 @@ const DoctorProfile: React.FC = () => {
               <button
                 onClick={() => setIsEditing(true)}
                 className="bg-white text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors duration-200 flex items-center space-x-2"
+                disabled={loading}
               >
                 <Edit3 className="h-4 w-4" />
                 <span>प्रोफाइल संपादित करें</span>
@@ -154,14 +291,16 @@ const DoctorProfile: React.FC = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={handleSave}
-                  className="bg-white text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors duration-200 flex items-center space-x-2"
+                  disabled={saving}
+                  className="bg-white text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  <span>सेव करें</span>
+                  <Save className={`h-4 w-4 ${saving ? 'animate-spin' : ''}`} />
+                  <span>{saving ? 'सेव हो रहा है...' : 'सेव करें'}</span>
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2"
+                  disabled={saving}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center space-x-2 disabled:opacity-50"
                 >
                   <X className="h-4 w-4" />
                   <span>रद्द करें</span>
@@ -300,7 +439,7 @@ const DoctorProfile: React.FC = () => {
                   )}
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Calendar className="h-4 w-4 inline mr-2" />
                     जन्म तिथि
@@ -317,9 +456,9 @@ const DoctorProfile: React.FC = () => {
                       {new Date(doctorData.personalInfo.dateOfBirth).toLocaleDateString('hi-IN')}
                     </p>
                   )}
-                </div>
+                </div> */}
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">लिंग</label>
                   {isEditing ? (
                     <select
@@ -337,7 +476,7 @@ const DoctorProfile: React.FC = () => {
                        doctorData.personalInfo.gender === 'female' ? 'महिला' : ''}
                     </p>
                   )}
-                </div>
+                </div> */}
 
                 {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">रक्त समूह</label>
@@ -467,11 +606,69 @@ const DoctorProfile: React.FC = () => {
                       value={tempData.professionalInfo.experience}
                       onChange={(e) => updateProfessionalInfo('experience', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="जैसे: 5 वर्ष"
                     />
                   ) : (
                     <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.professionalInfo.experience}</p>
                   )}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Building className="h-4 w-4 inline mr-2" />
+                    अस्पताल का प्रकार
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={tempData.professionalInfo.hospitalType}
+                      onChange={(e) => updateProfessionalInfo('hospitalType', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">चुनें</option>
+                      <option value="सरकारी">सरकारी</option>
+                      <option value="निजी">निजी</option>
+                      <option value="चैरिटी">चैरिटी</option>
+                      <option value="अन्य">अन्य</option>
+                    </select>
+                  ) : (
+                    <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.professionalInfo.hospitalType}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Building className="h-4 w-4 inline mr-2" />
+                    वर्तमान अस्पताल
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={tempData.professionalInfo.currentHospital}
+                      onChange={(e) => updateProfessionalInfo('currentHospital', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.professionalInfo.currentHospital}</p>
+                  )}
+                </div>
+
+                {/* <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Activity className="h-4 w-4 inline mr-2" />
+                    आवंटित शिविर
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={tempData.professionalInfo.assignedCamps}
+                      onChange={(e) => updateProfessionalInfo('assignedCamps', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="शिविर के नाम"
+                    />
+                  ) : (
+                    <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{doctorData.professionalInfo.assignedCamps}</p>
+                  )}
+                </div> */}
 
                 {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

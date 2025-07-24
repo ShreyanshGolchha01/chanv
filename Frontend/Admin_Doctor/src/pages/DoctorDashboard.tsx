@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   MapPin,
   Users, 
   Heart, 
   Calendar, 
-  UserPlus
+  UserPlus,
+  RefreshCw
 } from 'lucide-react';
+import serverUrl from './Server';
 
 const DoctorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -20,42 +22,102 @@ const DoctorDashboard: React.FC = () => {
     };
   });
 
-  // Empty data for doctor dashboard - Connect to your backend
-  const todayStats = {
+  // Dashboard stats state
+  const [todayStats, setTodayStats] = useState({
     totalPatients: 0,
     newPatients: 0,
     followUps: 0,
     activeCamps: 0
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  // API functions for dashboard data
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Get total patients count
+      const totalPatientsResponse = await fetch(`${serverUrl}/get_total_patients.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const totalPatientsData = await totalPatientsResponse.json();
+
+      // Get today's patients count
+      const todayPatientsResponse = await fetch(`${serverUrl}/get_today_patients.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const todayPatientsData = await todayPatientsResponse.json();
+
+      // Get total camps count
+      const totalCampsResponse = await fetch(`${serverUrl}/get_total_camps.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const totalCampsData = await totalCampsResponse.json();
+
+      // Get active camps count
+      const activeCampsResponse = await fetch(`${serverUrl}/get_active_camps.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const activeCampsData = await activeCampsResponse.json();
+
+      // Update stats
+      setTodayStats({
+        totalPatients: totalPatientsData.success ? totalPatientsData.data.count : 0,
+        newPatients: todayPatientsData.success ? todayPatientsData.data.count : 0,
+        followUps: totalCampsData.success ? totalCampsData.data.count : 0,
+        activeCamps: activeCampsData.success ? activeCampsData.data.count : 0
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Empty activities data - Connect to your backend
-  const recentActivities: any[] = [];
+  // Load dashboard data on component mount
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
 
   // ...existing code...
 
   const kpiCards = [
     {
-      title: 'आज के मरीज़',
+      title: 'कुल मरीज़',
       value: todayStats.totalPatients,
       icon: Users,
       color: 'bg-blue-500',
-      change: '0 नए',
+      change: 'सभी रिकॉर्ड',
       changeType: 'neutral' as const,
     },
     {
-      title: 'नए पंजीकरण',
+      title: 'आज के मरीज़',
       value: todayStats.newPatients,
       icon: UserPlus,
-      color: 'bg-purple-400',
-      change: '0 आज',
+      color: 'bg-green-500',
+      change: 'आज के रिकॉर्ड',
       changeType: 'neutral' as const,
     },
     {
-      title: 'फॉलो-अप',
+      title: 'कुल शिविर',
       value: todayStats.followUps,
       icon: Calendar,
-      color: 'bg-yellow-400',
-      change: '0 बाकी',
+      color: 'bg-yellow-500',
+      change: 'सभी शिविर',
       changeType: 'neutral' as const,
     },
     {
@@ -63,7 +125,7 @@ const DoctorDashboard: React.FC = () => {
       value: todayStats.activeCamps,
       icon: MapPin,
       color: 'bg-purple-500',
-      change: '0 आगामी',
+      change: 'चालू शिविर',
       changeType: 'neutral' as const,
     },
   ];
@@ -84,45 +146,71 @@ const DoctorDashboard: React.FC = () => {
               </p>
             )}
           </div>
-          <div className="hidden md:flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-green-200" />
-            <span className="text-green-100">
-              {new Date().toLocaleDateString('hi-IN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={fetchDashboardStats}
+              disabled={loading}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>रीफ्रेश</span>
+            </button>
+            <div className="hidden md:flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-green-200" />
+              <span className="text-green-100">
+                {new Date().toLocaleDateString('hi-IN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpiCards.map((card, index) => {
-          const IconComponent = card.icon;
-          return (
+        {loading ? (
+          // Loading skeleton
+          Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="card border border-gray-400">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <div className="flex items-center mt-2">
-                    <span
-                      className={`text-sm font-medium text-gray-600`}
-                    >
-                      {card.change}
-                    </span>
-                  </div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
                 </div>
-                <div className={`p-3 rounded-lg ${card.color}`}>
-                  <IconComponent className="h-6 w-6 text-white" />
-                </div>
+                <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          kpiCards.map((card, index) => {
+            const IconComponent = card.icon;
+            return (
+              <div key={index} className="card border border-gray-400">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
+                    <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                    <div className="flex items-center mt-2">
+                      <span
+                        className={`text-sm font-medium text-gray-600`}
+                      >
+                        {card.change}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-lg ${card.color}`}>
+                    <IconComponent className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Quick Actions */}

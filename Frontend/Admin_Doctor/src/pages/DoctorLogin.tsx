@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Stethoscope, Eye, EyeOff } from 'lucide-react';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import serverUrl from './Server';// Adjust the import based on your project structure
 
 const DoctorLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -8,10 +11,38 @@ const DoctorLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check if doctor is already authenticated
-  const isDoctorAuthenticated = localStorage.getItem('isDoctorAuthenticated') === 'true';
-  if (isDoctorAuthenticated) {
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const authStatus = await AsyncStorage.getItem('isDoctorAuthenticated');
+        if (authStatus === 'true') {
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  // Redirect if already authenticated
+  if (isAuthenticated) {
     return <Navigate to="/doctor/dashboard" replace />;
   }
 
@@ -34,27 +65,41 @@ const DoctorLogin: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!validateForm()) {
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    // Call your PHP API
+    const response = await axios.post(`${serverUrl}/login_doctor.php`, {
+      email: email,
+      password: password
+    });
+
+    if (response.data && response.data.email) {
+      // Store login data
+      await AsyncStorage.setItem('isDoctorAuthenticated', 'true');
+      await AsyncStorage.setItem('doctorInfo', JSON.stringify(response.data));
+
+      // Navigate to dashboard
+      window.location.href = '/doctor/dashboard';
+    } else {
+      alert('ईमेल या पासवर्ड गलत है');
     }
 
-    setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem('isDoctorAuthenticated', 'true');
-      localStorage.setItem('doctorInfo', JSON.stringify({
-        name: '',
-        email: email,
-        role: 'doctor'
-      }));
-      window.location.href = '/doctor/dashboard';
-      setIsLoading(false);
-    }, 1000);
-  };
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('लॉगिन में त्रुटि हुई');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex">

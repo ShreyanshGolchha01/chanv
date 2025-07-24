@@ -9,6 +9,7 @@ import {
   User,
   Activity
 } from 'lucide-react';
+import { logout } from '../utils/authUtils';
 
 interface DoctorSidebarProps {
   isOpen: boolean;
@@ -27,10 +28,17 @@ const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isOpen, onClose }) => {
   ];
   // niche yaha tak hue hai
 
-  const handleLogout = () => {
-    localStorage.removeItem('isDoctorAuthenticated');
-    localStorage.removeItem('doctorInfo');
-    window.location.href = '/doctor/login';
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual cleanup
+      localStorage.removeItem('isDoctorAuthenticated');
+      localStorage.removeItem('doctorInfo');
+      window.location.href = '/';
+    }
   };
 
   return (

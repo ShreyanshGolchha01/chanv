@@ -10,29 +10,64 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons, MaterialIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
 
-// Empty medical report data - Connect to your backend
-const medicalReportData = {
-  campInfo: {
-    date: '',
-    location: '',
-    campType: '',
-    doctor: '',
-    time: ''
-  },
-  employeeReport: {
-    name: '',
-    employeeId: '',
-    age: 0,
-    bloodGroup: '',
-    tests: []
-  },
-  familyReports: []
-};
+interface Test {
+  name: string;
+  value: string;
+  normalRange: string;
+  status: string;
+}
+
+interface HealthReport {
+  id: number;
+  patientId: number;
+  relativeId?: number;
+  campname: string;
+  campdate: string;
+  reporttype: string;
+  doctorName: string;
+  reports: string;
+  symptoms: string;
+  diagnosis: string;
+  medicines: string;
+  condition: string;
+  notes: string;
+  patientName: string;
+  relation: string;
+  gender: string;
+  bloodGroup: string;
+  age: number;
+  tests: Test[];
+  campDetails?: {
+    location?: string;
+    address?: string;
+    startTime?: string;
+    endTime?: string;
+    coordinator?: string;
+    description?: string;
+    services?: string;
+    status?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Camp {
+  id: number;
+  campName: string;
+  location: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  doctors: string;
+  status: string;
+}
 
 interface ReportDetailsScreenProps {
   onBack: () => void;
@@ -40,81 +75,93 @@ interface ReportDetailsScreenProps {
 }
 
 const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, reportData }) => {
-  const [activeTab, setActiveTab] = useState('employee');
-  const [selectedFamilyMember, setSelectedFamilyMember] = useState<any>(null);
-  const [reportDetails, setReportDetails] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'employee' | 'family'>('employee');
+  const [selectedFamilyMember, setSelectedFamilyMember] = useState<HealthReport | null>(null);
+  const [healthReports, setHealthReports] = useState<HealthReport[]>([]);
+  const [employeeReports, setEmployeeReports] = useState<HealthReport[]>([]);
+  const [familyReports, setFamilyReports] = useState<HealthReport[]>([]);
+  const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
+  const [userId, setUserId] = useState<string>('');
 
-const [id,setId] = useState('');
+  useEffect(() => {
+    const getUserId = async () => {
+      try {
+        const cid = await AsyncStorage.getItem('cid');
+        if (cid) {
+          setUserId(cid);
+        }
+      } catch (error) {
+        console.error('Error getting user ID:', error);
+      }
+    };
+    getUserId();
+  }, []);
 
-useEffect(() => {
-  const showCid = async () => {
-    try {
-      const cid = await AsyncStorage.getItem('cid');
-      setId(""+cid)
-    } catch (e) {
-     
+  useEffect(() => {
+    if (userId) {
+      loadHealthReports();
+      loadCamps();
     }
+  }, [userId]);
+
+  const formatDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
-  showCid();
-}, []);
-
-
-const formatDate = (isoDate: string) => {
-  const date = new Date(isoDate);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-//=========================
-useEffect(() => {
-  const fetchReports = async () => {
+  const loadHealthReports = async () => {
     try {
-      const response = await fetch(serverUrl + "get_report.php?patientId=" + id);
+      setLoading(true);
+      console.log('Fetching health reports for user:', userId);
+      
+      const response = await fetch(`http://192.168.1.9/chanv/get_health_reports.php?patientId=${userId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Health reports response:', data);
 
-      if (data.success && Array.isArray(data.reports)) {
-        setReportDetails(data.reports);  // ✅ update state here
+      if (data.success) {
+        setHealthReports(data.reports || []);
+        setEmployeeReports(data.employeeReports || []);
+        setFamilyReports(data.familyReports || []);
       } else {
-        console.warn("No reports found or response format incorrect.");
-        setReportDetails([]); // set empty array if no data
+        console.warn('No health reports found:', data.message);
+        Alert.alert('जानकारी', 'कोई रिपोर्ट नहीं मिली।');
       }
     } catch (error) {
-      console.error("Fetch error:", error);
+      console.error('Error loading health reports:', error);
+      Alert.alert('त्रुटि', 'रिपोर्ट लोड करने में समस्या हुई।');
     } finally {
       setLoading(false);
     }
   };
-//
-  if (id) {
-    fetchReports();
-  }
-}, [id]);
 
+  const loadCamps = async () => {
+    try {
+      const response = await fetch(`http://192.168.1.9/chanv/get_camp_app.php?limit=5`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Camps response:', data);
 
-const ReportCard = ({ reports }: { reports: any[] }) => {
-  if (!Array.isArray(reports) || reports.length === 0) {
-    return <Text style={styles.noReports}>No reports available</Text>;
-  }
-};
-///==============================
-//
-  // Remove backend integration - data will be loaded locally  
-  useEffect(() => {
-    // Component initialization without API calls
-    setLoading(false);
-  }, [reportData]);
-
-  // Use real data if available, fallback to empty structure
-  const currentReportData = reportDetails || medicalReportData;
-  const sortedFamilyMembers = currentReportData.familyReports || [];
-
-  // When you connect to backend, replace this with actual reports array
-  const reportsArray = [currentReportData]; // This will be replaced with backend data
+      if (data.success) {
+        setCamps(data.camps || []);
+      }
+    } catch (error) {
+      console.error('Error loading camps:', error);
+    }
+  };
 
   const handlePreviousReport = () => {
     if (currentReportIndex > 0) {
@@ -123,14 +170,14 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
   };
 
   const handleNextReport = () => {
-    if (currentReportIndex < reportsArray.length - 1) {
+    if (currentReportIndex < employeeReports.length - 1) {
       setCurrentReportIndex(currentReportIndex + 1);
     }
   };
 
-  const renderFamilyMemberCard = (member: any) => (
+  const renderFamilyMemberCard = (member: HealthReport) => (
     <TouchableOpacity
-      key={member.name}
+      key={member.id}
       style={styles.familyMemberCard}
       onPress={() => setSelectedFamilyMember(member)}
       activeOpacity={0.8}
@@ -149,16 +196,14 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
             style={styles.memberCardAvatar}
           >
             <FontAwesome5 
-              name={member.relation === 'पत्नी' ? 'female' : 
-                    member.relation === 'पुत्र' ? 'male' : 
-                    member.relation === 'पुत्री' ? 'female' : 'user'} 
+              name={member.gender === 'female' ? 'female' : 'male'} 
               size={24} 
               color={COLORS.white} 
             />
           </LinearGradient>
           
           <View style={styles.memberCardInfo}>
-            <Text style={styles.memberCardName}>{member.name}</Text>
+            <Text style={styles.memberCardName}>{member.patientName}</Text>
             <Text style={styles.memberCardRelation}>{member.relation}</Text>
             <View style={styles.memberCardDetails}>
               <Text style={styles.memberCardDetailText}>उम्र: {member.age} वर्ष</Text>
@@ -192,10 +237,37 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
   const renderFamilyMembersList = () => (
     <View style={styles.familyListContainer}>
       <View style={styles.familyListHeader}>
-        <Text style={styles.familyListTitle}>परिवारिक सदस्य (उम्र के अनुसार)</Text>
-        <Text style={styles.familyListSubtitle}>किसी भी सदस्य की विस्तृत रिपोर्ट देखने के लिए उन पर क्लिक करें</Text>
+        <Text style={styles.familyListTitle}>परिवारिक सदस्य रिपोर्ट</Text>
+        <Text style={styles.familyListSubtitle}>
+          {familyReports.length > 0 
+            ? 'किसी भी सदस्य की विस्तृत रिपोर्ट देखने के लिए उन पर क्लिक करें'
+            : 'अभी तक कोई परिवारिक सदस्य की रिपोर्ट नहीं है'
+          }
+        </Text>
       </View>
-      {sortedFamilyMembers.map(renderFamilyMemberCard)}
+      {familyReports.length > 0 ? (
+        familyReports.map(renderFamilyMemberCard)
+      ) : (
+        <LinearGradient
+          colors={COLORS.gradients.card.colors}
+          start={COLORS.gradients.card.start}
+          end={COLORS.gradients.card.end}
+          style={styles.emptyStateCard}
+        >
+          <LinearGradient
+            colors={COLORS.gradients.accent.colors}
+            start={COLORS.gradients.accent.start}
+            end={COLORS.gradients.accent.end}
+            style={styles.emptyStateIcon}
+          >
+            <FontAwesome5 name="user-friends" size={32} color={COLORS.white} />
+          </LinearGradient>
+          <Text style={styles.emptyStateTitle}>कोई पारिवारिक रिपोर्ट नहीं</Text>
+          <Text style={styles.emptyStateMessage}>
+            अभी तक आपके परिवारिक सदस्यों की कोई स्वास्थ्य रिपोर्ट नहीं है।
+          </Text>
+        </LinearGradient>
+      )}
     </View>
   );
 
@@ -225,7 +297,7 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
     );
   };
 
-  const renderTestResult = (test: any) => (
+  const renderTestResult = (test: Test) => (
     <LinearGradient
       key={test.name}
       colors={COLORS.gradients.card.colors}
@@ -277,7 +349,7 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
     </LinearGradient>
   );
 
-  const renderPersonCard = (person: any, isEmployee: boolean = false) => (
+  const renderPersonCard = (report: HealthReport, isEmployee: boolean = false) => (
     <View style={styles.personSection}>
       <LinearGradient
         colors={COLORS.gradients.primary.colors}
@@ -293,37 +365,138 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
         >
           <FontAwesome5 
             name={isEmployee ? 'user-tie' : 
-                  person.relation === 'पत्नी' ? 'female' : 
-                  person.relation === 'पुत्र' ? 'male' : 
-                  person.relation === 'पुत्री' ? 'female' : 'user'} 
+                  report.gender === 'female' ? 'female' : 'male'} 
             size={28} 
             color={COLORS.white} 
           />
         </LinearGradient>
         
         <View style={styles.personInfo}>
-          <Text style={styles.personName}>{person.name}</Text>
-          {isEmployee ? (
-            <Text style={styles.personRole}>कर्मचारी ID: {person.employeeId}</Text>
-          ) : (
-            <Text style={styles.personRole}>{person.relation}</Text>
-          )}
+          <Text style={styles.personName}>{report.patientName}</Text>
+          <Text style={styles.personRole}>{isEmployee ? `कर्मचारी` : report.relation}</Text>
           <View style={styles.personDetails}>
-            <Text style={styles.personDetailText}>उम्र: {person.age} वर्ष</Text>
-            <Text style={styles.personDetailText}>ब्लड ग्रुप: {person.bloodGroup}</Text>
+            <Text style={styles.personDetailText}>उम्र: {report.age} वर्ष</Text>
+            <Text style={styles.personDetailText}>ब्लड ग्रुप: {report.bloodGroup}</Text>
           </View>
         </View>
       </LinearGradient>
       
+      {/* Medical Details */}
+      <LinearGradient
+        colors={COLORS.gradients.card.colors}
+        start={COLORS.gradients.card.start}
+        end={COLORS.gradients.card.end}
+        style={styles.medicalDetailsCard}
+      >
+        <Text style={styles.medicalDetailsTitle}>चिकित्सा विवरण</Text>
+        
+        <View style={styles.medicalDetailRow}>
+          <Text style={styles.medicalDetailLabel}>लक्षण:</Text>
+          <Text style={styles.medicalDetailValue}>{report.symptoms}</Text>
+        </View>
+        
+        <View style={styles.medicalDetailRow}>
+          <Text style={styles.medicalDetailLabel}>निदान:</Text>
+          <Text style={styles.medicalDetailValue}>{report.diagnosis}</Text>
+        </View>
+        
+        <View style={styles.medicalDetailRow}>
+          <Text style={styles.medicalDetailLabel}>दवाइयां:</Text>
+          <Text style={styles.medicalDetailValue}>{report.medicines}</Text>
+        </View>
+        
+        <View style={styles.medicalDetailRow}>
+          <Text style={styles.medicalDetailLabel}>स्थिति:</Text>
+          <LinearGradient
+            colors={report.condition === 'स्वस्थ' ? 
+              ['#27ae60', '#2ecc71'] : 
+              report.condition === 'स्थिर' ?
+              ['#3498db', '#2980b9'] :
+              report.condition === 'ध्यान चाहिए' ?
+              ['#f39c12', '#e67e22'] :
+              ['#e74c3c', '#c0392b']}
+            style={styles.conditionBadge}
+          >
+            <Text style={styles.conditionText}>{report.condition}</Text>
+          </LinearGradient>
+        </View>
+        
+        {report.notes && (
+          <View style={styles.medicalDetailRow}>
+            <Text style={styles.medicalDetailLabel}>टिप्पणी:</Text>
+            <Text style={styles.medicalDetailValue}>{report.notes}</Text>
+          </View>
+        )}
+      </LinearGradient>
+      
+      {/* Tests Container */}
       <View style={styles.testsContainer}>
-        {person.tests.map(renderTestResult)}
+        <Text style={styles.testsTitle}>परीक्षण रिपोर्ट</Text>
+        {report.tests && report.tests.length > 0 ? (
+          report.tests.map(renderTestResult)
+        ) : (
+          <LinearGradient
+            colors={COLORS.gradients.card.colors}
+            start={COLORS.gradients.card.start}
+            end={COLORS.gradients.card.end}
+            style={styles.noTestsCard}
+          >
+            <MaterialIcons name="assignment" size={32} color={COLORS.textSecondary} />
+            <Text style={styles.noTestsText}>कोई परीक्षण रिपोर्ट उपलब्ध नहीं</Text>
+          </LinearGradient>
+        )}
       </View>
     </View>
   );
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>रिपोर्ट लोड हो रही है...</Text>
+        </View>
+      );
+    }
+
     if (activeTab === 'employee') {
-      return renderPersonCard(medicalReportData.employeeReport, true);
+      if (employeeReports.length > 0) {
+        const currentReport = employeeReports[currentReportIndex];
+        return renderPersonCard(currentReport, true);
+      } else {
+        return (
+          <LinearGradient
+            colors={COLORS.gradients.card.colors}
+            start={COLORS.gradients.card.start}
+            end={COLORS.gradients.card.end}
+            style={styles.emptyStateCard}
+          >
+            <LinearGradient
+              colors={COLORS.gradients.accent.colors}
+              start={COLORS.gradients.accent.start}
+              end={COLORS.gradients.accent.end}
+              style={styles.emptyStateIcon}
+            >
+              <FontAwesome5 name="user-tie" size={32} color={COLORS.white} />
+            </LinearGradient>
+            <Text style={styles.emptyStateTitle}>कोई रिपोर्ट नहीं मिली</Text>
+            <Text style={styles.emptyStateMessage}>
+              अभी तक आपकी कोई स्वास्थ्य रिपोर्ट नहीं है।
+            </Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={loadHealthReports}>
+              <LinearGradient
+                colors={COLORS.gradients.primary.colors}
+                start={COLORS.gradients.primary.start}
+                end={COLORS.gradients.primary.end}
+                style={styles.refreshButtonGradient}
+              >
+                <Ionicons name="refresh" size={16} color={COLORS.white} />
+                <Text style={styles.refreshButtonText}>रीफ्रेश करें</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
+        );
+      }
     } else {
       if (selectedFamilyMember) {
         return renderSelectedMemberDetails();
@@ -334,117 +507,101 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
       {/* Camp Info Card with Carousel */}
-      <LinearGradient
-        colors={COLORS.gradients.card.colors}
-        start={COLORS.gradients.card.start}
-        end={COLORS.gradients.card.end}
-        style={styles.campInfoCard}
-      >
-        {/* Carousel Navigation */}
-        <View style={styles.carouselHeader}>
-          <TouchableOpacity 
-            style={[styles.carouselButton, currentReportIndex === 0 && styles.disabledButton]}
-            onPress={handlePreviousReport}
-            disabled={currentReportIndex === 0}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="chevron-back" 
-              size={20} 
-              color={currentReportIndex === 0 ? COLORS.gray[400] : COLORS.primary} 
-            />
-          </TouchableOpacity>
-          
-          <View style={styles.reportIndicator}>
-            <Text style={styles.reportIndicatorText}>
-              {currentReportIndex === 0 ? 'नवीनतम रिपोर्ट' : `${currentReportIndex + 1} महीने पहले`}
-            </Text>
-            <View style={styles.dotsContainer}>
-              {reportsArray.map((_, index: number) => (
-                <View 
-                  key={index}
-                  style={[
-                    styles.dot, 
-                    index === currentReportIndex && styles.activeDot
-                  ]} 
-                />
-              ))}
+      {employeeReports.length > 0 && (
+        <LinearGradient
+          colors={COLORS.gradients.card.colors}
+          start={COLORS.gradients.card.start}
+          end={COLORS.gradients.card.end}
+          style={styles.campInfoCard}
+        >
+          {/* Carousel Navigation */}
+          <View style={styles.carouselHeader}>
+            <TouchableOpacity 
+              style={[styles.carouselButton, currentReportIndex === 0 && styles.disabledButton]}
+              onPress={handlePreviousReport}
+              disabled={currentReportIndex === 0}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="chevron-back" 
+                size={20} 
+                color={currentReportIndex === 0 ? COLORS.gray[400] : COLORS.primary} 
+              />
+            </TouchableOpacity>
+            
+            <View style={styles.reportIndicator}>
+              <Text style={styles.reportIndicatorText}>
+                {currentReportIndex === 0 ? 'नवीनतम रिपोर्ट' : `${currentReportIndex + 1} रिपोर्ट पहले`}
+              </Text>
+              <View style={styles.dotsContainer}>
+                {employeeReports.map((_, index: number) => (
+                  <View 
+                    key={index}
+                    style={[
+                      styles.dot, 
+                      index === currentReportIndex && styles.activeDot
+                    ]} 
+                  />
+                ))}
+              </View>
             </View>
+            
+            <TouchableOpacity 
+              style={[styles.carouselButton, currentReportIndex === employeeReports.length - 1 && styles.disabledButton]}
+              onPress={handleNextReport}
+              disabled={currentReportIndex === employeeReports.length - 1}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="chevron-forward" 
+                size={20} 
+                color={currentReportIndex === employeeReports.length - 1 ? COLORS.gray[400] : COLORS.primary} 
+              />
+            </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.carouselButton, currentReportIndex === reportsArray.length - 1 && styles.disabledButton]}
-            onPress={handleNextReport}
-            disabled={currentReportIndex === reportsArray.length - 1}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="chevron-forward" 
-              size={20} 
-              color={currentReportIndex === reportsArray.length - 1 ? COLORS.gray[400] : COLORS.primary} 
-            />
-          </TouchableOpacity>
-          
-        </View>
- 
-    <ScrollView
-  horizontal={true}
-  showsHorizontalScrollIndicator={false}
- contentContainerStyle={{ ...styles.container11, paddingHorizontal: 1 }}
->
-  {Array.isArray(reportDetails) && reportDetails.length > 0 ? (
-    reportDetails.map((report) => (
-      <View key={report.id} style={styles.card}>
-        <Text style={styles.title}>{report.campname}</Text>
-        <Text style={styles.date}>🗓️ {formatDate(report.campdate)}</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>👨‍⚕️ Doctor:</Text>
-          <Text style={styles.value}>{report.doctorName}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>📋 Type:</Text>
-          <Text style={styles.value}>{report.reporttype}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>🤒 Symptoms:</Text>
-          <Text style={styles.value}>{report.symptoms}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>🔍 Diagnosis:</Text>
-          <Text style={styles.value}>{report.diagnosis}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>💊 Medicines:</Text>
-          <Text style={styles.value}>{report.medicines}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>📊 Condition:</Text>
-          <Text style={styles.value}>{report.condition}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>📝 Notes:</Text>
-          <Text style={styles.value}>{report.notes}</Text>
-        </View>
-      </View>
-    ))
-  ) : (
-    <Text style={{ textAlign: 'center', marginTop: 20 }}>No reports available</Text>
-  )}
-</ScrollView>
-
-      </LinearGradient>
+          {/* Current Report Info */}
+          {employeeReports[currentReportIndex] && (
+            <View style={styles.campInfoDetails}>
+              <View style={styles.campInfoHeader}>
+                <LinearGradient
+                  colors={COLORS.gradients.primary.colors}
+                  start={COLORS.gradients.primary.start}
+                  end={COLORS.gradients.primary.end}
+                  // style={styles.campIcon}
+                >
+                  <MaterialIcons name="local-hospital" size={24} color={COLORS.white} />
+                </LinearGradient>
+                <View style={styles.campInfoDetails}>
+                  <Text style={styles.campTitle}>{employeeReports[currentReportIndex].campname}</Text>
+                  <Text style={styles.campDate}>
+                    📅 {formatDate(employeeReports[currentReportIndex].campdate)}
+                  </Text>
+                </View>
+              </View>
               
+              <View style={styles.campDetails}>
+                <View style={styles.campDetailRow}>
+                  <MaterialIcons name="person" size={16} color={COLORS.primary} />
+                  <Text style={styles.campDetailText}>
+                    डॉक्टर: {employeeReports[currentReportIndex].doctorName}
+                  </Text>
+                </View>
+                <View style={styles.campDetailRow}>
+                  <MaterialIcons name="assignment" size={16} color={COLORS.accent} />
+                  <Text style={styles.campDetailText}>
+                    प्रकार: {employeeReports[currentReportIndex].reporttype}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </LinearGradient>
+      )}
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
@@ -468,7 +625,7 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
               styles.tabText, 
               activeTab === 'employee' && styles.activeTabText
             ]}>
-              कर्मचारी
+              कर्मचारी ({employeeReports.length})
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -493,7 +650,7 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
               styles.tabText, 
               activeTab === 'family' && styles.activeTabText
             ]}>
-              परिवार
+              परिवार ({familyReports.length})
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -508,9 +665,20 @@ const ReportCard = ({ reports }: { reports: any[] }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.xl,
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.base,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
   },
   campInfoCard: {
     marginHorizontal: SPACING.lg,
@@ -526,15 +694,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.md,
   },
-  campIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.md,
-    ...SHADOWS.medium,
-  },
+  // campIcon: {
+  //   width: 50,
+  //   height: 50,
+  //   borderRadius: 25,
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  //   marginRight: SPACING.md,
+  //   ...SHADOWS.medium,
+  // },
   campInfoDetails: {
     flex: 1,
   },
@@ -562,6 +730,71 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginLeft: SPACING.sm,
     flex: 1,
+  },
+  // Medical Details Styles
+  medicalDetailsCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.md,
+    backgroundColor: COLORS.white,
+    ...SHADOWS.medium,
+    elevation: 4,
+  },
+  medicalDetailsTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+  },
+  medicalDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.md,
+    flexWrap: 'wrap',
+  },
+  medicalDetailLabel: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.textPrimary,
+    marginRight: SPACING.sm,
+    minWidth: 80,
+  },
+  medicalDetailValue: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    flex: 1,
+    lineHeight: 20,
+  },
+  conditionBadge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.round,
+    alignSelf: 'flex-start',
+  },
+  conditionText: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.white,
+    fontWeight: FONTS.weights.bold,
+  },
+  testsTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+  },
+  noTestsCard: {
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    ...SHADOWS.medium,
+    elevation: 4,
+  },
+  noTestsText: {
+    fontSize: FONTS.sizes.base,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -832,24 +1065,6 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.weights.medium,
     marginLeft: SPACING.xs,
   },
-  previousReportsContainer: {
-    paddingBottom: SPACING.xl,
-  },
-  previousReportsHeader: {
-    marginBottom: SPACING.lg,
-    paddingHorizontal: SPACING.sm,
-  },
-  previousReportsTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  previousReportsSubtitle: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
   emptyStateCard: {
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
@@ -944,76 +1159,62 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     width: 12,
   },
-  latestBadge: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.round,
-    ...SHADOWS.small,
-  },
-  latestBadgeText: {
-    fontSize: FONTS.sizes.xs,
-    color: COLORS.white,
-    fontWeight: FONTS.weights.bold,
-  },
-
-  container: {
-    padding: 10,
-  },
-  noReports: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-    color: '#777',
-  },
-  card: {
-    backgroundColor: '#fefefe',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  date: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 10,
-  },
-  section: {
-    flexDirection: 'row',
-    marginVertical: 2,
-    flexWrap: 'wrap',
-  },
-  label: {
-    fontWeight: '600',
-    color: '#34495e',
-    marginRight: 5,
-  },
-  value: {
+  // Modal styles
+  modalOverlay: {
     flex: 1,
-    color: '#2c3e50',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  card12: {
-  width: 300,               // 🔸 fixed width for horizontal layout
-  backgroundColor: '#fefefe',
-  borderRadius: 12,
-  padding: 15,
-  marginRight: 15,          // 🔸 spacing between cards
-  elevation: 3,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-},
-
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    ...SHADOWS.medium,
+  },
+  modalTitle: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: SPACING.lg,
+    textAlign: 'center',
+    color: COLORS.primary,
+  },
+  modalBody: {
+    marginBottom: SPACING.lg,
+  },
+  modalText: {
+    fontSize: FONTS.sizes.base,
+    lineHeight: 24,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  modalSection: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: SPACING.lg,
+  },
+  modalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: COLORS.white,
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.semibold,
+  },
 });
 
 export default ReportDetailsScreen;

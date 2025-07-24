@@ -1,12 +1,36 @@
-import React from 'react';
-import { Menu, Bell, User, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, User, Search } from 'lucide-react';
+import AsyncStorage from '../utils/AsyncStorage';
 
 interface HeaderProps {
   title: string;
   onMenuClick: () => void;
 }
 
+interface UserInfo {
+  name: string;
+  email: string;
+  role: string;
+}
+
 const Header: React.FC<HeaderProps> = ({ title, onMenuClick }) => {
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const userInfoStr = await AsyncStorage.getItem('userInfo');
+        if (userInfoStr) {
+          const userInfo = JSON.parse(userInfoStr);
+          setUserInfo(userInfo);
+        }
+      } catch (error) {
+        console.error('Error getting user info:', error);
+      }
+    };
+
+    getUserInfo();
+  }, []);
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -44,8 +68,13 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuClick }) => {
           {/* User Profile */}
           <div className="flex items-center space-x-3">
             <div className="hidden md:block text-right">
-              <p className="text-sm font-medium text-gray-700">उपयोगकर्ता</p>
-              <p className="text-xs text-gray-500">भूमिका</p>
+              <p className="text-sm font-medium text-gray-700">
+                {userInfo?.name || 'उपयोगकर्ता'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {userInfo?.role === 'Admin' ? 'प्रशासक' : 
+                 userInfo?.role === 'doctor' ? 'डॉक्टर' : 'भूमिका'}
+              </p>
             </div>
             <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
               <User className="h-4 w-4 text-white" />

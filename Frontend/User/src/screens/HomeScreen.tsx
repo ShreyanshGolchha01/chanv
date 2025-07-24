@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -29,6 +30,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
   const [nextCamps, setNextCamps] = useState<any[]>([]);
   const [previousReports, setPreviousReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string>('');
   
   const [activeTab, setActiveTab] = useState('home');
   // COMMENTED OUT - Schemes feature temporarily disabled
@@ -44,11 +46,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
   const flatListRef = React.useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Remove backend integration - data will be loaded locally
+  // Get user ID from AsyncStorage
   useEffect(() => {
-    // Component initialization without API calls
-    setLoading(false);
+    const getUserId = async () => {
+      try {
+        const cid = await AsyncStorage.getItem('cid');
+        if (cid) {
+          setUserId(cid);
+        }
+      } catch (error) {
+        console.error('Error getting user ID:', error);
+      }
+    };
+    getUserId();
   }, []);
+
+  // Fetch data when userId is available
+  useEffect(() => {
+    if (userId) {
+      fetchCamps();
+      fetchRecentReports();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
 
 const formatDate = (isoDate: string) => {
   const date = new Date(isoDate);
@@ -59,10 +80,9 @@ const formatDate = (isoDate: string) => {
 };
 
   //==============================================
-useEffect(() => {
   const fetchCamps = async () => {
     try {
-      const response = await fetch(serverUrl + 'get_camps.php');
+      const response = await fetch(serverUrl + 'get_camps1.php');
       const data = await response.json(); // Parse JSON
 
       if (data.success) {
@@ -72,13 +92,31 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Error fetching camps:', error);
+    }
+  };
+
+  const fetchRecentReports = async () => {
+    try {
+      console.log('Fetching reports for userId:', userId);
+      const response = await fetch(`${serverUrl}get_recent_reports.php?patientId=${userId}&limit=3`);
+      const data = await response.json();
+      
+      console.log('Reports response:', data);
+
+      if (data.success) {
+        setPreviousReports(data.reports);
+        console.log('Reports set:', data.reports);
+      } else {
+        console.error('Failed to fetch reports:', data.message);
+        setPreviousReports([]); // Set empty array if no reports
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setPreviousReports([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
   };
-
-  fetchCamps();
-}, []);
 
 
   //============================
@@ -148,23 +186,35 @@ useEffect(() => {
         {/* Next Camps Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>आगामी शिविर</Text>
-          <FlatList
-            ref={flatListRef}
-            data={nextCamps}
-            renderItem={renderCampCard}
-            keyExtractor={(item) => item.id.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.campsList}
-            onScroll={handleScroll}
-            snapToAlignment="center"
-            snapToInterval={310 + SPACING.md} // Card width + margin
-            decelerationRate={0.8}
-            snapToOffsets={nextCamps.map((_, index) => index * (310 + SPACING.md))}
-            onScrollToIndexFailed={() => {}}
-            pagingEnabled={false}
-            nestedScrollEnabled={true}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>शिविर की जानकारी लोड हो रही है...</Text>
+            </View>
+          ) : nextCamps.length > 0 ? (
+            <FlatList
+              ref={flatListRef}
+              data={nextCamps}
+              renderItem={renderCampCard}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.campsList}
+              onScroll={handleScroll}
+              snapToAlignment="center"
+              snapToInterval={310 + SPACING.md} // Card width + margin
+              decelerationRate={0.8}
+              snapToOffsets={nextCamps.map((_, index) => index * (310 + SPACING.md))}
+              onScrollToIndexFailed={() => {}}
+              pagingEnabled={false}
+              nestedScrollEnabled={true}
+            />
+          ) : (
+            <View style={styles.emptyReportsContainer}>
+              <MaterialIcons name="event" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyReportsText}>कोई आगामी शिविर नहीं</Text>
+              <Text style={styles.emptyReportsSubText}>नए शिविर की जानकारी यहां दिखाई जाएगी</Text>
+            </View>
+          )}
         </View>
 
         {/* Previous Reports Section */}
@@ -186,15 +236,27 @@ useEffect(() => {
               <MaterialIcons name="chevron-right" size={16} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
-          <FlatList
-            data={previousReports}
-            renderItem={renderReportCard}
-            keyExtractor={(item) => item.id.toString()}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.reportsList}
-            scrollEnabled={false}
-            nestedScrollEnabled={true}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>रिपोर्ट्स लोड हो रही हैं...</Text>
+            </View>
+          ) : previousReports.length > 0 ? (
+            <FlatList
+              data={previousReports}
+              renderItem={renderReportCard}
+              keyExtractor={(item) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.reportsList}
+              scrollEnabled={false}
+              nestedScrollEnabled={true}
+            />
+          ) : (
+            <View style={styles.emptyReportsContainer}>
+              <MaterialIcons name="description" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyReportsText}>कोई पिछली रिपोर्ट नहीं मिली</Text>
+              <Text style={styles.emptyReportsSubText}>आपकी स्वास्थ्य रिपोर्ट्स यहां दिखाई जाएंगी</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     );
@@ -988,6 +1050,40 @@ const styles = StyleSheet.create({
   activeNavText: {
     color: COLORS.primary,
     fontWeight: FONTS.weights.bold,
+  },
+  loadingContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+  },
+  emptyReportsContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    marginTop: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.gray[200],
+  },
+  emptyReportsText: {
+    fontSize: FONTS.sizes.base,
+    color: COLORS.textSecondary,
+    fontWeight: FONTS.weights.medium,
+    marginTop: SPACING.md,
+    textAlign: 'center',
+  },
+  emptyReportsSubText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 

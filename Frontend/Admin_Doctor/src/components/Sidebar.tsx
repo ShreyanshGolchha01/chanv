@@ -5,11 +5,13 @@ import {
   MapPin, 
   Stethoscope, 
   Users, 
-  FileText, 
-  BarChart3,
+  // FileText, 
+  // BarChart3,
   LogOut,
   Heart
 } from 'lucide-react';
+import AsyncStorage from '../utils/AsyncStorage';
+import { logout } from '../utils/authUtils';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,12 +25,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: Stethoscope, label: 'डॉक्टर', path: '/admin/doctors' },
     { icon: Users, label: 'मरीज़', path: '/admin/users' },
     // { icon: FileText, label: 'योजनाएं', path: '/admin/schemes' },
-    { icon: BarChart3, label: 'रिपोर्ट', path: '/admin/reports' },
+    // { icon: BarChart3, label: 'रिपोर्ट', path: '/admin/reports' },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    window.location.href = '/';
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual cleanup
+      await AsyncStorage.removeItem('isAuthenticated');
+      window.location.href = '/';
+    }
   };
 
   return (

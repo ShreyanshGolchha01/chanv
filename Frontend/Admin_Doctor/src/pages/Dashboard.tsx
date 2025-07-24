@@ -1,57 +1,156 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, MapPin, FileText, Calendar, Activity } from 'lucide-react';
+import { TrendingUp, Users, MapPin, Calendar, Activity, Stethoscope, RefreshCw } from 'lucide-react';
+import { dashboardAPI } from '../services/api';
+
+interface KPIData {
+  totalCamps: number;
+  totalUsers: number;
+  totalDoctors: number;
+  monthlyBeneficiaries: number;
+}
+
+interface ChartDataPoint {
+  महीना: string;
+  शिविर: number;
+  लाभार्थी: number;
+}
+
+interface ActivityLog {
+  id: number;
+  action: string;
+  details: string;
+  timestamp: string;
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [showAllActivities, setShowAllActivities] = useState(false);
-  
-  // Empty data arrays - Connect to your backend
-  const mockKPIData = {
+  const [loading, setLoading] = useState(true);
+  const [kpiData, setKpiData] = useState<KPIData>({
     totalCamps: 0,
     totalUsers: 0,
-    totalSchemes: 0,
+    totalDoctors: 0,
     monthlyBeneficiaries: 0
+  });
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Use the optimized single API call to get all dashboard data
+      const response = await dashboardAPI.getAllDashboardData();
+      
+      if (response.success) {
+        // Update KPI data
+        setKpiData({
+          totalCamps: response.data.kpi.totalCamps,
+          totalUsers: response.data.kpi.totalPatients,
+          totalDoctors: response.data.kpi.totalDoctors,
+          monthlyBeneficiaries: response.data.kpi.monthlyBeneficiaries
+        });
+
+        // Update chart data
+        setChartData(response.data.chartData);
+
+        // Update activity logs
+        setActivityLogs(response.data.activities);
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      // Fallback to individual API calls if the combined endpoint fails
+      try {
+        const [
+          campsResponse,
+          patientsResponse,
+          doctorsResponse,
+          beneficiariesResponse,
+          activitiesResponse,
+          chartResponse
+        ] = await Promise.all([
+          dashboardAPI.getTotalCamps(),
+          dashboardAPI.getTotalPatients(),
+          dashboardAPI.getTotalDoctors(),
+          dashboardAPI.getMonthlyBeneficiaries(),
+          dashboardAPI.getRecentActivities(),
+          dashboardAPI.getDashboardChartData()
+        ]);
+
+        // Update KPI data
+        setKpiData({
+          totalCamps: campsResponse.success ? campsResponse.data.count : 0,
+          totalUsers: patientsResponse.success ? patientsResponse.data.count : 0,
+          totalDoctors: doctorsResponse.success ? doctorsResponse.data.count : 0,
+          monthlyBeneficiaries: beneficiariesResponse.success ? beneficiariesResponse.data.count : 0
+        });
+
+        // Update chart data
+        if (chartResponse.success) {
+          setChartData(chartResponse.data);
+        }
+
+        // Update activity logs
+        if (activitiesResponse.success) {
+          setActivityLogs(activitiesResponse.data);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback API calls also failed:', fallbackError);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const mockChartData: any[] = [];
-  const mockActivityLogs: any[] = [];
   
   const kpiCards = [
     {
       title: 'कुल शिविर',
-      value: mockKPIData.totalCamps,
+      value: kpiData.totalCamps,
       icon: MapPin,
       color: 'bg-blue-500',
-      change: '0%',
+      // change: '0%',
       changeType: 'neutral' as const,
     },
     {
       title: 'कुल मरीज़',
-      value: mockKPIData.totalUsers,
+      value: kpiData.totalUsers,
       icon: Users,
       color: 'bg-green-500',
-      change: '0%',
+      // change: '0%',
       changeType: 'neutral' as const,
     },
     {
-      title: 'कुल योजनाएं',
-      value: mockKPIData.totalSchemes,
-      icon: FileText,
+      title: 'कुल डॉक्टर',
+      value: kpiData.totalDoctors,
+      icon: Stethoscope,
       color: 'bg-purple-500',
-      change: '0%',
+      // change: '0%',
       changeType: 'neutral' as const,
     },
     {
       title: 'मासिक लाभार्थी',
-      value: mockKPIData.monthlyBeneficiaries,
+      value: kpiData.monthlyBeneficiaries,
       icon: TrendingUp,
       color: 'bg-orange-500',
-      change: '0%',
+      // change: '0%',
       changeType: 'neutral' as const,
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,16 +163,26 @@ const Dashboard: React.FC = () => {
               आज आपके स्वास्थ्य शिविरों में क्या हो रहा है, देखिए।
             </p>
           </div>
-          <div className="hidden md:flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-blue-200" />
-            <span className="text-blue-100">
-              {new Date().toLocaleDateString('hi-IN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
+          <div className="hidden md:flex items-center space-x-4">
+            <button
+              onClick={fetchDashboardData}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>रीफ्रेश करें</span>
+            </button>
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-blue-200" />
+              <span className="text-blue-100">
+                {new Date().toLocaleDateString('hi-IN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -88,14 +197,14 @@ const Dashboard: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
                   <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <div className="flex items-center mt-2">
+                  {/* <div className="flex items-center mt-2">
                     <span
                       className={`text-sm font-medium text-gray-600`}
                     >
                       {card.change}
                     </span>
                     <span className="text-sm text-gray-500 ml-1">पिछले महीने से</span>
-                  </div>
+                  </div> */}
                 </div>
                 <div className={`p-3 rounded-lg ${card.color}`}>
                   <IconComponent className="h-6 w-6 text-white" />
@@ -127,7 +236,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockChartData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="महीना" 
@@ -177,7 +286,7 @@ const Dashboard: React.FC = () => {
             <Activity className="h-5 w-5 text-gray-400" />
           </div>
           <div className="space-y-4">
-            {(showAllActivities ? mockActivityLogs : mockActivityLogs.slice(0, 5)).map((log) => (
+            {(showAllActivities ? activityLogs : activityLogs.slice(0, 5)).map((log: ActivityLog) => (
               <div key={log.id} className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
                   <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
@@ -189,6 +298,11 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             ))}
+            {activityLogs.length === 0 && (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">कोई हाल की गतिविधि नहीं मिली</p>
+              </div>
+            )}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200">
             <button 

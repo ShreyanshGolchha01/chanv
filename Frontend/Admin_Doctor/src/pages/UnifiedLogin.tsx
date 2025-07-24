@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Shield, Stethoscope, Eye, EyeOff, Users, Heart } from 'lucide-react';
 import axios from 'axios';
 import serverUrl from './Server';
+import AsyncStorage from '../utils/AsyncStorage';
+import { AuthCookies } from '../utils/CookieStorage';
 
 type LoginType = 'admin' | 'doctor';
 
@@ -11,14 +13,54 @@ const UnifiedLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDoctorAuthenticated, setIsDoctorAuthenticated] = useState(false);
 
-  // Check if user is already authenticated
-  const isAdminAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  const isDoctorAuthenticated = localStorage.getItem('isDoctorAuthenticated') === 'true';
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        // Check cookies first, then fallback to localStorage
+        const adminAuth = await AuthCookies.getAuthCookie('isAuthenticated') || 
+                         await AsyncStorage.getItem('isAuthenticated');
+        const doctorAuth = await AuthCookies.getAuthCookie('isDoctorAuthenticated') || 
+                          await AsyncStorage.getItem('isDoctorAuthenticated');
+        
+        setIsAuthenticated(adminAuth === 'true');
+        setIsDoctorAuthenticated(doctorAuth === 'true');
+
+        // Load saved email if remember me was checked
+        const savedEmail = await AuthCookies.getAuthCookie('savedEmail');
+        const savedRememberMe = await AuthCookies.getAuthCookie('rememberMe');
+        
+        if (savedEmail && savedRememberMe === 'true') {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
   
-  if (isAdminAuthenticated) {
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
   if (isDoctorAuthenticated) {
@@ -70,9 +112,30 @@ const UnifiedLogin: React.FC = () => {
     console.log('Login response:', data); // Debug log
 
     if (data.role == 'admin') {
-    
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem(
+      // Save to cookies with remember me preference
+      await AuthCookies.setAuthCookie('isAuthenticated', 'true', rememberMe);
+      await AuthCookies.setAuthCookie(
+        'userInfo',
+        JSON.stringify({
+          name: data.name,
+          email: data.email,
+          role: 'Admin'
+        }),
+        rememberMe
+      );
+
+      // Save email and remember preference if remember me is checked
+      if (rememberMe) {
+        await AuthCookies.setAuthCookie('savedEmail', email, true);
+        await AuthCookies.setAuthCookie('rememberMe', 'true', true);
+      } else {
+        await AuthCookies.removeAuthCookie('savedEmail');
+        await AuthCookies.removeAuthCookie('rememberMe');
+      }
+
+      // Also save to localStorage for backward compatibility
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      await AsyncStorage.setItem(
         'userInfo',
         JSON.stringify({
           name: data.name,
@@ -84,8 +147,33 @@ const UnifiedLogin: React.FC = () => {
       window.location.href = '/dashboard';
     } else if (data.role == 'doctor') { // Changed from 'doctor' to 'Doctor'
 
-      localStorage.setItem('isDoctorAuthenticated', 'true');
-      localStorage.setItem(
+      // Save to cookies with remember me preference
+      await AuthCookies.setAuthCookie('isDoctorAuthenticated', 'true', rememberMe);
+      await AuthCookies.setAuthCookie(
+        'userInfo',
+        JSON.stringify({
+          name: data.user?.name || data.name,
+          email: data.user?.email || data.email,
+          role: 'doctor',
+          specialty: data.user?.specialty || data.specialty,
+          phone: data.user?.phone || data.phone,
+          id: data.user?.id || data.id
+        }),
+        rememberMe
+      );
+
+      // Save email and remember preference if remember me is checked
+      if (rememberMe) {
+        await AuthCookies.setAuthCookie('savedEmail', email, true);
+        await AuthCookies.setAuthCookie('rememberMe', 'true', true);
+      } else {
+        await AuthCookies.removeAuthCookie('savedEmail');
+        await AuthCookies.removeAuthCookie('rememberMe');
+      }
+
+      // Also save to localStorage for backward compatibility
+      await AsyncStorage.setItem('isDoctorAuthenticated', 'true');
+      await AsyncStorage.setItem(
         'userInfo',
         JSON.stringify({
           name: data.user?.name || data.name,
@@ -322,10 +410,12 @@ const UnifiedLogin: React.FC = () => {
                       id="remember-me"
                       name="remember-me"
                       type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
                       className={`h-4 w-4 text-${theme.text} focus:ring-${theme.focus} border-gray-300 rounded`}
                     />
                     <label htmlFor="remember-me" className="ml-2 text-gray-600">
-                      मुझे याद रखें
+                      मुझे याद रखें (30 दिन)
                     </label>
                   </div>
                   <a href="#" className={`text-${theme.text} hover:text-${theme.textHover} font-medium`}>

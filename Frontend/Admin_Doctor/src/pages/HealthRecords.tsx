@@ -12,10 +12,10 @@ import {
   Plus,
   AlertCircle,
   CheckCircle,
-  Clock,
   Stethoscope,
   Thermometer
 } from 'lucide-react';
+import { healthRecordsAPI } from '../services/api';
 
 interface HealthRecord {
   id: string;
@@ -40,7 +40,7 @@ interface HealthRecord {
   symptoms: string[];
   diagnosis: string;
   medications: string[];
-  status: 'healthy' | 'stable' | 'needs-attention' | 'critical';
+  status: 'healthy' | 'stable' | 'needs-attention' | 'critical' | 'स्वस्थ' | 'स्थिर' | 'ध्यान चाहिए' | 'गंभीर';
   doctorNotes: string;
 }
 
@@ -51,37 +51,29 @@ const HealthRecords: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(null);
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [statistics, setStatistics] = useState({
+    totalRecords: 0,
+    healthyPatients: 0,
+    stablePatients: 0,
+    needsAttention: 0,
+    criticalCases: 0
+  });
   
   // State for patient search
-  const [isEmployeeRelative, setIsEmployeeRelative] = useState<'employee' | 'relative' | 'others' | ''>('');
+  const [isEmployeeRelative, setIsEmployeeRelative] = useState<'employee' | 'relative' | 'outsider' | ''>('');
   const [searchPhone, setSearchPhone] = useState('');
   const [foundRelatives, setFoundRelatives] = useState<any[]>([]);
   const [selectedRelativeId, setSelectedRelativeId] = useState('');
   const [showRelativeDropdown, setShowRelativeDropdown] = useState(false);
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   
   // State for camp search
   const [showCampDropdown, setShowCampDropdown] = useState(false);
   const [foundCamps, setFoundCamps] = useState<any[]>([]);
   const [campSearchValue, setCampSearchValue] = useState('');
+  const [campSearchLoading, setCampSearchLoading] = useState(false);
 
-  // Click outside handler for dropdowns
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.camp-dropdown-container')) {
-        setShowCampDropdown(false);
-      }
-      if (!target.closest('.relative-dropdown-container')) {
-        setShowRelativeDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
   // State for dynamic vital signs
   const [selectedVitalTest, setSelectedVitalTest] = useState('');
   const [vitalTestValue, setVitalTestValue] = useState('');
@@ -108,6 +100,67 @@ const HealthRecords: React.FC = () => {
     status: 'stable' as 'healthy' | 'stable' | 'needs-attention' | 'critical',
     doctorNotes: ''
   });
+
+  // Load health records on component mount and when filters change
+  useEffect(() => {
+    loadHealthRecords();
+  }, [searchTerm, statusFilter, checkupTypeFilter]);
+
+  // Debug: Monitor form data changes
+  useEffect(() => {
+    console.log('Form data changed:', formData);
+  }, [formData]);
+
+  // Click outside handler for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.camp-dropdown-container')) {
+        setShowCampDropdown(false);
+      }
+      if (!target.closest('.relative-dropdown-container')) {
+        setShowRelativeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Function to load health records from API
+  const loadHealthRecords = async () => {
+    setLoading(true);
+    try {
+      const result = await healthRecordsAPI.getHealthRecords({
+        searchTerm,
+        statusFilter: statusFilter === 'all' ? undefined : statusFilter,
+        checkupTypeFilter: checkupTypeFilter === 'all' ? undefined : checkupTypeFilter,
+        limit: 50,
+        offset: 0
+      });
+
+      if (result.success) {
+        setHealthRecords(result.data.records || []);
+        setStatistics(result.data.statistics || {
+          totalRecords: 0,
+          healthyPatients: 0,
+          stablePatients: 0,
+          needsAttention: 0,
+          criticalCases: 0
+        });
+      } else {
+        console.error('Failed to load health records:', result.message);
+        alert(result.message || 'स्वास्थ्य रिकॉर्ड लोड करने में त्रुटि हुई');
+      }
+    } catch (error) {
+      console.error('Error loading health records:', error);
+      alert('स्वास्थ्य रिकॉर्ड लोड करने में त्रुटि हुई');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Function to handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -138,94 +191,121 @@ const HealthRecords: React.FC = () => {
       return;
     }
 
+    if (!isEmployeeRelative) {
+      alert('कृपया मरीज़ का प्रकार चुनें');
+      return;
+    }
+
+    setPatientSearchLoading(true);
     try {
-      if (isEmployeeRelative === 'employee') {
-        // Search for employee directly
-        // API call to search employee by phone number
-        // const response = await axios.post(`${serverUrl}search_employee.php`, { phone: searchPhone });
-        
-        // For now, just show alert - you'll need to implement API call
-        alert('कर्मचारी खोज API को implement करें');
-        
-        // Mock response - remove this when API is ready
-        // If employee found, fill the form
-        // setFormData(prev => ({
-        //   ...prev,
-        //   patientName: 'Employee Name',
-        //   age: '35',
-        //   gender: 'male',
-        //   phone: searchPhone,
-        //   address: 'Employee Address'
-        // }));
-      } else if (isEmployeeRelative === 'relative') {
-        // Search for relatives of employee
-        // API call to get all relatives of employee
-        // const response = await axios.post(`${serverUrl}search_relatives.php`, { employeePhone: searchPhone });
-        
-        // For now, just show alert - you'll need to implement API call
-        alert('रिश्तेदार खोज API को implement करें');
-        
-        // Mock response - remove this when API is ready
-        // const relatives = response.data.relatives || [];
-        // setFoundRelatives(relatives);
-        // setShowRelativeDropdown(relatives.length > 0);
-      } else if (isEmployeeRelative === 'others') {
-        // Direct search by phone number for any patient
-        // API call to search patient by phone number
-        // const response = await axios.post(`${serverUrl}search_patient.php`, { phone: searchPhone });
-        
-        // For now, just show alert - you'll need to implement API call
-        alert('मरीज़ खोज API को implement करें');
-        
-        // Mock response - remove this when API is ready
-        // If patient found, fill the form directly
-        // setFormData(prev => ({
-        //   ...prev,
-        //   patientName: 'Patient Name',
-        //   age: '30',
-        //   gender: 'female',
-        //   phone: searchPhone,
-        //   address: 'Patient Address'
-        // }));
+      const result = await healthRecordsAPI.searchPatient(searchPhone.trim(), isEmployeeRelative);
+
+      if (result.success) {
+        if (isEmployeeRelative === 'employee') {
+          const employeeData = result.data;
+          console.log('Employee data received:', employeeData); // Debug log
+          localStorage.setItem('searchedPatient', JSON.stringify(employeeData));
+          setFormData(prev => ({
+            ...prev,
+            patientName: employeeData.name,
+            age: employeeData.age.toString(),
+            gender: employeeData.gender,
+            phone: employeeData.phone,
+            address: employeeData.address || ''
+          }));
+        } else if (isEmployeeRelative === 'relative') {
+          localStorage.setItem('searchedPatient', JSON.stringify(result.data));
+          console.log('Found relatives:', result.data.relatives); // Debug log
+          console.log('Employee data:', result.data); // Debug employee data
+          setFoundRelatives(result.data.relatives || []);
+          setShowRelativeDropdown(result.data.relatives && result.data.relatives.length > 0);
+          
+          if (result.data.relatives && result.data.relatives.length > 0) {
+            console.log('First relative sample:', result.data.relatives[0]); // Debug first relative
+            alert(`${result.data.relatives.length} रिश्तेदार मिले। कृपया नीचे से एक चुनें।`);
+          }
+        } else if (isEmployeeRelative === 'outsider') {
+          const outsiderData = result.data;
+          console.log('Outsider data received:', outsiderData); // Debug log
+          localStorage.setItem('searchedPatient', JSON.stringify(outsiderData));
+          setFormData(prev => ({
+            ...prev,
+            patientName: outsiderData.name,
+            age: outsiderData.age.toString(),
+            gender: outsiderData.gender,
+            phone: outsiderData.phone,
+            address: ''
+          }));
+        }
+      } else {
+        alert(result.message || 'मरीज़ खोजते समय त्रुटि हुई');
       }
     } catch (error) {
       console.error('Patient search error:', error);
       alert('मरीज़ खोजते समय त्रुटि हुई');
+    } finally {
+      setPatientSearchLoading(false);
     }
   };
 
   // Function to handle relative selection
   const handleRelativeSelection = (relativeId: string) => {
-    const selectedRelative = foundRelatives.find(rel => rel.id === relativeId);
+    console.log('Trying to select relative with ID:', relativeId);
+    console.log('Available relatives:', foundRelatives);
+    
+    // Convert relativeId to number for comparison since backend sends r_id as number
+    const selectedRelative = foundRelatives.find(rel => rel.id.toString() === relativeId.toString());
+    
     if (selectedRelative) {
-      setFormData(prev => ({
-        ...prev,
-        patientName: selectedRelative.name,
-        age: selectedRelative.age.toString(),
-        gender: selectedRelative.gender,
-        phone: selectedRelative.phone || '',
-        address: selectedRelative.address || ''
-      }));
+      console.log('Selected relative data:', selectedRelative); // Debug log
+      localStorage.setItem('searchedRelative', JSON.stringify(selectedRelative));
+      
+      // Set form data with relative information
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          patientName: selectedRelative.name || '',
+          age: selectedRelative.age ? selectedRelative.age.toString() : '',
+          gender: selectedRelative.gender || 'male',
+          phone: selectedRelative.phone || '',
+          address: '' // Relatives don't have address in DB, so keep it empty for manual entry
+        };
+        console.log('Setting new form data:', newData);
+        return newData;
+      });
+      
+      setSelectedRelativeId(relativeId);
       setShowRelativeDropdown(false);
+      
+      // Show success message
+      alert(`रिश्तेदार चुना गया: ${selectedRelative.name} (${selectedRelative.relation})`);
+      
+    } else {
+      console.error('Relative not found with ID:', relativeId);
+      alert('रिश्तेदार चुनने में त्रुटि हुई। कृपया दोबारा कोशिश करें।');
     }
   };
 
   // Function to search for camps
   const handleCampSearch = async () => {
+    setCampSearchLoading(true);
     try {
-      // API call to get user's assigned camps
-      // const response = await axios.post(`${serverUrl}get_user_camps.php`, { userId: currentUserId });
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const userId = userData.id || '1';
       
-      // For now, just show alert - you'll need to implement API call
-      alert('कैंप खोज API को implement करें');
-      
-      // Mock response structure - remove this when API is ready
-      // const camps = response.data.camps || [];
-      // setFoundCamps(camps);
-      // setShowCampDropdown(camps.length > 0);
+      const result = await healthRecordsAPI.getUserCamps(userId);
+
+      if (result.success) {
+        setFoundCamps(result.data.camps || []);
+        setShowCampDropdown(result.data.camps && result.data.camps.length > 0);
+      } else {
+        alert(result.message || 'कैंप खोजते समय त्रुटि हुई');
+      }
     } catch (error) {
       console.error('Camp search error:', error);
       alert('कैंप खोजते समय त्रुटि हुई');
+    } finally {
+      setCampSearchLoading(false);
     }
   };
 
@@ -247,7 +327,6 @@ const HealthRecords: React.FC = () => {
     setFoundRelatives([]);
     setSelectedRelativeId('');
     setShowRelativeDropdown(false);
-    // Reset camp search as well
     setShowCampDropdown(false);
     setFoundCamps([]);
     setCampSearchValue('');
@@ -277,18 +356,6 @@ const HealthRecords: React.FC = () => {
     { value: 'weight', label: 'वजन (Weight)', unit: 'kg' },
     { value: 'height', label: 'कद (Height)', unit: 'cm' },
     { value: 'bloodSugar', label: 'रक्त शुगर (Blood Sugar)', unit: 'mg/dL' },
-    // { value: 'cholesterol', label: 'कोलेस्ट्रॉल (Cholesterol)', unit: 'mg/dL' },
-    // { value: 'hemoglobin', label: 'हीमोग्लोबिन (Hemoglobin)', unit: 'g/dL' },
-    // { value: 'oxygenSaturation', label: 'ऑक्सीजन संतृप्ति (Oxygen Saturation)', unit: '%' },
-    // { value: 'respiratoryRate', label: 'श्वसन दर (Respiratory Rate)', unit: '/min' },
-    // { value: 'plateletCount', label: 'प्लेटलेट काउंट (Platelet Count)', unit: '/μL' },
-    // { value: 'whiteBloodCells', label: 'सफेद रक्त कोशिकाएं (WBC)', unit: '/μL' },
-    // { value: 'redBloodCells', label: 'लाल रक्त कोशिकाएं (RBC)', unit: '/μL' },
-    // { value: 'urea', label: 'यूरिया (Urea)', unit: 'mg/dL' },
-    // { value: 'creatinine', label: 'क्रिएटिनिन (Creatinine)', unit: 'mg/dL' },
-    // { value: 'bilirubin', label: 'बिलीरुबिन (Bilirubin)', unit: 'mg/dL' },
-    // { value: 'protein', label: 'प्रोटीन (Protein)', unit: 'g/dL' },
-    // { value: 'albumin', label: 'एल्ब्युमिन (Albumin)', unit: 'g/dL' }
   ];
 
   // Function to add a vital test
@@ -315,51 +382,108 @@ const HealthRecords: React.FC = () => {
     });
   };
 
-  // Function to generate unique ID
-  const generateId = (): string => {
-    const lastId = healthRecords.length > 0 
-      ? Math.max(...healthRecords.map(r => parseInt(r.id.replace('HR', '')))) 
-      : 0;
-    return `HR${String(lastId + 1).padStart(3, '0')}`;
+  // Function to add new health record
+  const handleAddRecord = async () => {
+    // Validation
+    if (!formData.patientName || !formData.age || !formData.phone) {
+      alert('कृपया मरीज़ की सभी आवश्यक जानकारी भरें');
+      return;
+    }
+
+    if (!formData.camp || !formData.visitDate) {
+      alert('कृपया कैंप की जानकारी भरें');
+      return;
+    }
+
+    if (!formData.diagnosis) {
+      alert('कृपया निदान भरें');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Determine patient type and IDs
+      let patientType = isEmployeeRelative;
+      let patientId = null;
+      let relativeId = null;
+
+      // Get patient ID based on type
+      if (patientType === 'employee') {
+        const userData = JSON.parse(localStorage.getItem('searchedPatient') || '{}');
+        patientId = userData.id;
+      } else if (patientType === 'relative') {
+        const relativeData = JSON.parse(localStorage.getItem('searchedRelative') || '{}');
+        const employeeData = JSON.parse(localStorage.getItem('searchedPatient') || '{}');
+        relativeId = relativeData.id;
+        patientId = employeeData.employeeId || employeeData.id;
+      } else if (patientType === 'outsider') {
+        const userData = JSON.parse(localStorage.getItem('searchedPatient') || '{}');
+        patientId = userData.id;
+      }
+
+      // Get selected camp info
+      const selectedCamp = foundCamps.find(camp => camp.name === formData.camp);
+      const campId = selectedCamp?.id || null;
+
+      // Get doctor name from logged in user
+      const doctorData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const doctorName = doctorData.fullname || doctorData.name || 'डॉक्टर';
+
+      // Prepare vitals data
+      const vitals = {
+        bloodPressure: formData.bloodPressure || null,
+        heartRate: formData.heartRate ? Number(formData.heartRate) : null,
+        temperature: formData.temperature ? Number(formData.temperature) : null,
+        weight: formData.weight ? Number(formData.weight) : null,
+        height: formData.height ? Number(formData.height) : null,
+        bloodSugar: customVitals.bloodSugar ? parseFloat(customVitals.bloodSugar.split(' ')[0]) : null,
+        ...customVitals
+      };
+
+      // Prepare record data for API
+      const recordData = {
+        patientType,
+        patientId,
+        relativeId,
+        campId,
+        campName: formData.camp,
+        campDate: formData.visitDate,
+        reportType: formData.checkupType === 'routine' ? 'नियमित' : 
+                   formData.checkupType === 'emergency' ? 'आपातकाल' :
+                   formData.checkupType === 'screening' ? 'स्क्रीनिंग' : 'अन्य',
+        doctorName,
+        symptoms: formData.symptoms,
+        diagnosis: formData.diagnosis,
+        medicines: formData.medications,
+        conditions: formData.status === 'healthy' ? 'स्वस्थ' :
+                   formData.status === 'stable' ? 'स्थिर' :
+                   formData.status === 'needs-attention' ? 'ध्यान चाहिए' : 'गंभीर',
+        notes: formData.doctorNotes,
+        vitals
+      };
+
+      const result = await healthRecordsAPI.addHealthRecord(recordData);
+
+      if (result.success) {
+        alert('स्वास्थ्य रिकॉर्ड सफलतापूर्वक सेव हो गया');
+        setShowAddRecord(false);
+        
+        // Reset form and reload records
+        resetForm();
+        loadHealthRecords();
+      } else {
+        alert(result.message || 'स्वास्थ्य रिकॉर्ड सेव करने में त्रुटि हुई');
+      }
+    } catch (error) {
+      console.error('Add health record error:', error);
+      alert('स्वास्थ्य रिकॉर्ड सेव करने में त्रुटि हुई');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Function to add new health record
-  const handleAddRecord = () => {
-    const weight = Number(formData.weight);
-    const height = Number(formData.height);
-    const bmi = weight && height ? calculateBMI(weight, height) : 0;
-
-    const newRecord: HealthRecord = {
-      id: generateId(),
-      patientName: formData.patientName,
-      patientId: `P${String(healthRecords.length + 1).padStart(3, '0')}`,
-      age: Number(formData.age),
-      gender: formData.gender,
-      phone: formData.phone,
-      address: formData.address,
-      camp: formData.camp,
-      visitDate: formData.visitDate,
-      checkupType: formData.checkupType,
-      vitals: {
-        bloodPressure: formData.bloodPressure,
-        heartRate: Number(formData.heartRate),
-        temperature: Number(formData.temperature),
-        weight: weight,
-        height: height,
-        bmi: bmi,
-        customTests: customVitals
-      },
-      symptoms: formData.symptoms ? formData.symptoms.split(',').map(s => s.trim()) : [],
-      diagnosis: formData.diagnosis,
-      medications: formData.medications ? formData.medications.split(',').map(m => m.trim()) : [],
-      status: formData.status,
-      doctorNotes: formData.doctorNotes
-    };
-
-    setHealthRecords(prev => [...prev, newRecord]);
-    setShowAddRecord(false);
-    
-    // Reset form
+  // Function to reset form
+  const resetForm = () => {
     setFormData({
       patientName: '',
       age: '',
@@ -386,59 +510,8 @@ const HealthRecords: React.FC = () => {
     setSelectedVitalTest('');
     setVitalTestValue('');
     resetPatientSearch();
-  };
-
-  const filteredRecords = healthRecords.filter(record => {
-    const matchesSearch = record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.patientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.phone.includes(searchTerm);
-    
-    const matchesStatus = statusFilter === 'all' || record.status === statusFilter;
-    const matchesCheckupType = checkupTypeFilter === 'all' || record.checkupType === checkupTypeFilter;
-    
-    return matchesSearch && matchesStatus && matchesCheckupType;
-  });
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'stable':
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'needs-attention':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case 'critical':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Activity className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'स्वस्थ';
-      case 'stable': return 'स्थिर';
-      case 'needs-attention': return 'ध्यान चाहिए';
-      case 'critical': return 'गंभीर';
-      default: return 'अज्ञात';
-    }
-  };
-
-  const getCheckupTypeText = (type: string) => {
-    switch (type) {
-      case 'routine': return 'नियमित';
-      case 'emergency': return 'आपातकाल';
-      case 'screening': return 'स्क्रीनिंग';
-      case 'other': return 'अन्य';
-      default: return 'अन्य';
-    }
-  };
-
-  const statistics = {
-    totalRecords: healthRecords.length,
-    healthyPatients: healthRecords.filter(r => r.status === 'healthy').length,
-    needsAttention: healthRecords.filter(r => r.status === 'needs-attention').length,
-    criticalCases: healthRecords.filter(r => r.status === 'critical').length
+    localStorage.removeItem('searchedPatient');
+    localStorage.removeItem('searchedRelative');
   };
 
   return (
@@ -507,396 +580,221 @@ const HealthRecords: React.FC = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="card border border-gray-400">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="मरीज़ का नाम, ID या फोन नंबर खोजें..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">सभी स्थिति</option>
-              <option value="healthy">स्वस्थ</option>
-              <option value="stable">स्थिर</option>
-              <option value="needs-attention">ध्यान चाहिए</option>
-              <option value="critical">गंभीर</option>
-            </select>
-          </div>
-          
-          <div>
-            <select
-              value={checkupTypeFilter}
-              onChange={(e) => setCheckupTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">सभी चेकअप टाइप</option>
-              <option value="routine">नियमित</option>
-              <option value="emergency">आपातकाल</option>
-              <option value="screening">स्क्रीनिंग</option>
-              <option value="other">अन्य</option>
-            </select>
-          </div>
-          
-          <div className="flex space-x-2">
-            <button className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
-              <Download className="h-4 w-4" />
-              <span>एक्सपोर्ट</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Health Records Table */}
-      <div className="card border border-gray-400">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  मरीज़ की जानकारी
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  विजिट विवरण
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  महत्वपूर्ण संकेतक
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  निदान
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  स्थिति
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  कार्य
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRecords.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          record.gender === 'male' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
-                        }`}>
-                          <User className="h-5 w-5" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{record.patientName}</div>
-                        <div className="text-sm text-gray-500">ID: {record.patientId} • आयु: {record.age}</div>
-                        <div className="text-xs text-gray-400 flex items-center mt-1">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {record.phone}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 flex items-center">
-                        <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                        {new Date(record.visitDate).toLocaleDateString('hi-IN')}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {getCheckupTypeText(record.checkupType)}
-                      </div>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1 text-xs">
-                      {/* Display basic vitals if they exist */}
-                      {record.vitals.bloodPressure && (
-                        <div className="flex items-center">
-                          <Stethoscope className="h-3 w-3 mr-1 text-gray-400" />
-                          BP: {record.vitals.bloodPressure}
-                        </div>
-                      )}
-                      {record.vitals.heartRate && (
-                        <div className="flex items-center">
-                          <Heart className="h-3 w-3 mr-1 text-red-400" />
-                          HR: {record.vitals.heartRate} bpm
-                        </div>
-                      )}
-                      {record.vitals.temperature && (
-                        <div className="flex items-center">
-                          <Thermometer className="h-3 w-3 mr-1 text-yellow-400" />
-                          Temp: {record.vitals.temperature}°F
-                        </div>
-                      )}
-                      {/* record.vitals.bmi && (
-                        <div className="flex items-center">
-                          <Weight className="h-3 w-3 mr-1 text-purple-400" />
-                          BMI: {record.vitals.bmi}
-                        </div>
-                      ) */}
-                      
-                      {/* Display custom vitals */}
-                      {record.vitals.customTests && Object.entries(record.vitals.customTests).slice(0, 2).map(([testKey, value]) => {
-                        const testInfo = availableVitalTests.find(test => test.value === testKey);
-                        return (
-                          <div key={testKey} className="flex items-center">
-                            <Activity className="h-3 w-3 mr-1 text-blue-400" />
-                            {testInfo ? testInfo.label.split('(')[0].trim() : testKey}: {value}
-                          </div>
-                        );
-                      })}
-                      
-                      {/* Show count if more tests exist */}
-                      {record.vitals.customTests && Object.keys(record.vitals.customTests).length > 2 && (
-                        <div className="text-gray-400 text-xs">
-                          +{Object.keys(record.vitals.customTests).length - 2} और टेस्ट...
-                        </div>
-                      )}
-                      
-                      {/* Show message if no vitals */}
-                      {!record.vitals.bloodPressure && !record.vitals.heartRate && !record.vitals.temperature && 
-                       !record.vitals.bmi && (!record.vitals.customTests || Object.keys(record.vitals.customTests).length === 0) && (
-                        <div className="text-gray-400 text-xs">कोई टेस्ट रिपोर्ट नहीं</div>
-                      )}
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{record.diagnosis}</div>
-                    {record.symptoms.length > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        लक्षण: {record.symptoms.join(', ')}
-                      </div>
-                    )}
-                    {record.medications.length > 0 && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        दवाई: {record.medications.slice(0, 2).join(', ')}
-                        {record.medications.length > 2 && '...'}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getStatusIcon(record.status)}
-                      <span className={`ml-2 text-sm font-medium ${
-                        record.status === 'healthy' ? 'text-green-600' :
-                        record.status === 'stable' ? 'text-blue-600' :
-                        record.status === 'needs-attention' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {getStatusText(record.status)}
-                      </span>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setSelectedRecord(record)}
-                        className="text-green-600 hover:text-green-900 p-1 rounded"
-                        title="विवरण देखें"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                        title="डाउनलोड करें"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {filteredRecords.length === 0 && (
+      {loading ? (
+        <div className="card border border-gray-400">
           <div className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">कोई रिकॉर्ड नहीं मिला</h3>
-            <p className="mt-1 text-sm text-gray-500">आपके खोज मापदंड से मेल खाने वाला कोई स्वास्थ्य रिकॉर्ड नहीं मिला।</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-4"></div>
+            <p className="text-gray-600">स्वास्थ्य रिकॉर्ड लोड हो रहे हैं...</p>
           </div>
-        )}
-      </div>
-
-      {/* Record Detail Modal */}
-      {selectedRecord && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">स्वास्थ्य रिकॉर्ड विवरण</h3>
-                <button
-                  onClick={() => setSelectedRecord(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
+        </div>
+      ) : (
+        <>
+          {/* Search and Filters */}
+          <div className="card border border-gray-400">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="मरीज़ का नाम, ID या फोन नंबर खोजें..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
               </div>
               
-              <div className="space-y-6">
-                {/* Patient Info */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">मरीज़ की जानकारी</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">नाम:</span>
-                      <span className="ml-2 font-medium">{selectedRecord.patientName}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">आयु:</span>
-                      <span className="ml-2 font-medium">{selectedRecord.age} वर्ष</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">लिंग:</span>
-                      <span className="ml-2 font-medium">{selectedRecord.gender === 'male' ? 'पुरुष' : 'महिला'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">फोन:</span>
-                      <span className="ml-2 font-medium">{selectedRecord.phone}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-gray-500">पता:</span>
-                      <span className="ml-2 font-medium">{selectedRecord.address}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Vitals */}
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">महत्वपूर्ण संकेतक</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                    {/* Basic vitals */}
-                    {/* {selectedRecord.vitals.bloodPressure && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-blue-600">{selectedRecord.vitals.bloodPressure}</div>
-                        <div className="text-gray-500">रक्तचाप</div>
-                      </div>
-                    )}
-                    {selectedRecord.vitals.heartRate && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-red-600">{selectedRecord.vitals.heartRate}</div>
-                        <div className="text-gray-500">हृदय गति (bpm)</div>
-                      </div>
-                    )}
-                    {selectedRecord.vitals.temperature && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-yellow-600">{selectedRecord.vitals.temperature}°F</div>
-                        <div className="text-gray-500">तापमान</div>
-                      </div>
-                    )} */}
-                    {/* {selectedRecord.vitals.weight && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-purple-600">{selectedRecord.vitals.weight} kg</div>
-                        <div className="text-gray-500">वजन</div>
-                      </div>
-                    )} */}
-                    {/* {selectedRecord.vitals.height && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-green-600">{selectedRecord.vitals.height} cm</div>
-                        <div className="text-gray-500">कद</div>
-                      </div>
-                    )} */}
-                    {/* {selectedRecord.vitals.bmi && (
-                      <div className="text-center">
-                        <div className="font-bold text-lg text-indigo-600">{selectedRecord.vitals.bmi}</div>
-                        <div className="text-gray-500">BMI</div>
-                      </div>
-                    )} */}
-                    
-                    {/* Custom vitals */}
-                    {selectedRecord.vitals.customTests && Object.entries(selectedRecord.vitals.customTests).map(([testKey, value]) => {
-                      const testInfo = availableVitalTests.find(test => test.value === testKey);
-                      return (
-                        <div key={testKey} className="text-center">
-                          <div className="font-bold text-lg text-teal-600">{value}</div>
-                          <div className="text-gray-500 text-xs">
-                            {testInfo ? testInfo.label.split('(')[0].trim() : testKey}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Show message if no vitals */}
-                  {!selectedRecord.vitals.bloodPressure && !selectedRecord.vitals.heartRate && 
-                   !selectedRecord.vitals.temperature && !selectedRecord.vitals.weight && 
-                   !selectedRecord.vitals.height && !selectedRecord.vitals.bmi &&
-                   (!selectedRecord.vitals.customTests || Object.keys(selectedRecord.vitals.customTests).length === 0) && (
-                    <div className="text-center py-4 text-gray-500">
-                      <Activity className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                      <p>कोई टेस्ट रिपोर्ट उपलब्ध नहीं है</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Diagnosis & Treatment */}
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">लक्षण</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedRecord.symptoms.map((symptom, index) => (
-                        <span key={index} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                          {symptom}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">निदान</h4>
-                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{selectedRecord.diagnosis}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">निर्धारित दवाइयां</h4>
-                    <ul className="list-disc list-inside space-y-1 text-gray-700">
-                      {selectedRecord.medications.map((medication, index) => (
-                        <li key={index}>{medication}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">डॉक्टर के नोट्स</h4>
-                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{selectedRecord.doctorNotes}</p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <button
-                    onClick={() => setSelectedRecord(null)}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
-                  >
-                    बंद करें
-                  </button>
-                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
-                    प्रिंट करें
-                  </button>
-                </div>
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="all">सभी स्थिति</option>
+                  <option value="स्वस्थ">स्वस्थ</option>
+                  <option value="स्थिर">स्थिर</option>
+                  <option value="ध्यान चाहिए">ध्यान चाहिए</option>
+                  <option value="गंभीर">गंभीर</option>
+                </select>
+              </div>
+              
+              <div>
+                <select
+                  value={checkupTypeFilter}
+                  onChange={(e) => setCheckupTypeFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="all">सभी चेकअप टाइप</option>
+                  <option value="नियमित">नियमित</option>
+                  <option value="आपातकाल">आपातकाल</option>
+                  <option value="स्क्रीनिंग">स्क्रीनिंग</option>
+                  <option value="अन्य">अन्य</option>
+                </select>
+              </div>
+              
+              <div className="flex space-x-2">
+                <button className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
+                  <Download className="h-4 w-4" />
+                  <span>एक्सपोर्ट</span>
+                </button>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Health Records Table */}
+          <div className="card border border-gray-400">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      मरीज़ की जानकारी
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      विजिट विवरण
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      महत्वपूर्ण संकेतक
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      निदान
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      स्थिति
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      कार्य
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {healthRecords.map((record) => (
+                    <tr key={record.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                              record.gender === 'male' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'
+                            }`}>
+                              <User className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{record.patientName}</div>
+                            <div className="text-sm text-gray-500">ID: {record.patientId} • आयु: {record.age}</div>
+                            <div className="text-xs text-gray-400 flex items-center mt-1">
+                              <Phone className="h-3 w-3 mr-1" />
+                              {record.phone}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                            <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                            {new Date(record.visitDate).toLocaleDateString('hi-IN')}
+                          </div>
+                          <div className="text-sm text-gray-500">{record.checkupType}</div>
+                        </div>
+                      </td>
+                      
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="space-y-1 text-xs">
+                          {record.vitals.bloodPressure && (
+                            <div className="flex items-center">
+                              <Stethoscope className="h-3 w-3 mr-1 text-gray-400" />
+                              BP: {record.vitals.bloodPressure}
+                            </div>
+                          )}
+                          {record.vitals.heartRate && (
+                            <div className="flex items-center">
+                              <Heart className="h-3 w-3 mr-1 text-red-400" />
+                              HR: {record.vitals.heartRate} bpm
+                            </div>
+                          )}
+                          {record.vitals.temperature && (
+                            <div className="flex items-center">
+                              <Thermometer className="h-3 w-3 mr-1 text-yellow-400" />
+                              Temp: {record.vitals.temperature}°F
+                            </div>
+                          )}
+                          {Object.entries(record.vitals.customTests || {}).slice(0, 2).map(([testKey, value]) => (
+                            <div key={testKey} className="flex items-center">
+                              <Activity className="h-3 w-3 mr-1 text-blue-400" />
+                              {testKey}: {value}
+                            </div>
+                          ))}
+                          {(!record.vitals.bloodPressure && !record.vitals.heartRate && !record.vitals.temperature && 
+                           (!record.vitals.customTests || Object.keys(record.vitals.customTests).length === 0)) && (
+                            <div className="text-gray-400 text-xs">कोई टेस्ट रिपोर्ट नहीं</div>
+                          )}
+                        </div>
+                      </td>
+                      
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{record.diagnosis}</div>
+                        {record.symptoms.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            लक्षण: {record.symptoms.join(', ')}
+                          </div>
+                        )}
+                        {record.medications.length > 0 && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            दवाई: {record.medications.slice(0, 2).join(', ')}
+                            {record.medications.length > 2 && '...'}
+                          </div>
+                        )}
+                      </td>
+                      
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            record.status === 'healthy' || record.status === 'स्वस्थ' ? 'bg-green-100 text-green-800' :
+                            record.status === 'stable' || record.status === 'स्थिर' ? 'bg-blue-100 text-blue-800' :
+                            record.status === 'needs-attention' || record.status === 'ध्यान चाहिए' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {record.status}
+                          </span>
+                        </div>
+                      </td>
+                      
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setSelectedRecord(record)}
+                            className="text-green-600 hover:text-green-900 p-1 rounded"
+                            title="विवरण देखें"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                            title="डाउनलोड करें"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {healthRecords.length === 0 && (
+              <div className="text-center py-12">
+                <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">कोई रिकॉर्ड नहीं मिला</h3>
+                <p className="mt-1 text-sm text-gray-500">आपके खोज मापदंड से मेल खाने वाला कोई स्वास्थ्य रिकॉर्ड नहीं मिला।</p>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
-      {/* Add Record Modal */}
+      {/* Add Record Modal will be added in next part... */}
       {showAddRecord && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white">
@@ -911,50 +809,34 @@ const HealthRecords: React.FC = () => {
                 </button>
               </div>
               
-              <form onSubmit={(e) => { e.preventDefault(); handleAddRecord(); }} className="space-y-6">
-                {/* Patient Basic Information */}
+              <form className="space-y-6">
+                {/* Patient Search Section */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-gray-900">मरीज़ खोजें</h4>
-                    {formData.patientName && (
-                      <button
-                        type="button"
-                        onClick={resetPatientSearch}
-                        className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 transition-colors"
-                      >
-                        रीसेट करें
-                      </button>
-                    )}
-                  </div>
+                  <h4 className="font-medium text-gray-900 mb-4">मरीज़ खोजें</h4>
                   
-                  {/* Patient Search Section */}
                   <div className="space-y-4 mb-6">
-                    {/* Employee or Relative Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         मरीज़ का प्रकार *
                       </label>
                       <select
                         value={isEmployeeRelative}
-                        onChange={(e) => setIsEmployeeRelative(e.target.value as 'employee' | 'relative' | 'others')}
+                        onChange={(e) => setIsEmployeeRelative(e.target.value as 'employee' | 'relative' | 'outsider')}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         required
                       >
                         <option value="">चयन करें</option>
                         <option value="employee">कर्मचारी</option>
                         <option value="relative">कर्मचारी का रिश्तेदार</option>
-                        <option value="others">अन्य (फोन नंबर से खोजें)</option>
+                        <option value="outsider">अन्य (फोन नंबर से खोजें)</option>
                       </select>
                     </div>
 
-                    {/* Phone Number Search */}
                     {isEmployeeRelative && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {isEmployeeRelative === 'employee' ? 'कर्मचारी का फोन नंबर' : 
-                             isEmployeeRelative === 'relative' ? 'कर्मचारी का फोन नंबर' : 
-                             'मरीज़ का फोन नंबर'} *
+                            फोन नंबर *
                           </label>
                           <input
                             type="tel"
@@ -970,10 +852,11 @@ const HealthRecords: React.FC = () => {
                           <button
                             type="button"
                             onClick={handlePatientSearch}
-                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                            disabled={patientSearchLoading}
+                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center justify-center space-x-2"
                           >
                             <Search className="h-4 w-4" />
-                            <span>खोजें</span>
+                            <span>{patientSearchLoading ? 'खोज रहे हैं...' : 'खोजें'}</span>
                           </button>
                         </div>
                       </div>
@@ -999,7 +882,7 @@ const HealthRecords: React.FC = () => {
                           <option value="">रिश्तेदार चुनें</option>
                           {foundRelatives.map((relative) => (
                             <option key={relative.id} value={relative.id}>
-                              {relative.name} ({relative.relation}) - {relative.age} वर्ष
+                              {relative.name} ({relative.relation}) - {relative.age} वर्ष {relative.bloodGroup ? `- ${relative.bloodGroup}` : ''}
                             </option>
                           ))}
                         </select>
@@ -1007,7 +890,20 @@ const HealthRecords: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Patient Details (Auto-filled or Manual) */}
+                  {/* Success indicator when relative is selected */}
+                  {selectedRelativeId && formData.patientName && (
+                    <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+                      <div className="flex items-center text-green-700">
+                        <CheckCircle className="h-5 w-5 mr-2" />
+                        <span className="font-medium">रिश्तेदार चुना गया: {formData.patientName}</span>
+                      </div>
+                      <p className="text-sm text-green-600 mt-1">
+                        मरीज़ की जानकारी स्वचालित रूप से भर गई है। कृपया नीचे की जानकारी चेक करें।
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Patient Details */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1019,17 +915,9 @@ const HealthRecords: React.FC = () => {
                         value={formData.patientName}
                         onChange={handleInputChange}
                         required
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientName && searchPhone ? 'bg-green-50' : ''
-                        }`}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="पूरा नाम दर्ज करें"
-                        readOnly={!!(formData.patientName && searchPhone)}
                       />
-                      {formData.patientName && searchPhone && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ मरीज़ की जानकारी स्वचालित रूप से भरी गई
-                        </p>
-                      )}
                     </div>
                     
                     <div>
@@ -1044,11 +932,8 @@ const HealthRecords: React.FC = () => {
                         required
                         min="1"
                         max="120"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.age && searchPhone ? 'bg-green-50' : ''
-                        }`}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="वर्षों में"
-                        readOnly={!!(formData.age && searchPhone)}
                       />
                     </div>
                     
@@ -1061,10 +946,7 @@ const HealthRecords: React.FC = () => {
                         value={formData.gender}
                         onChange={handleInputChange}
                         required
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientName && searchPhone ? 'bg-green-50' : ''
-                        }`}
-                        disabled={!!(formData.patientName && searchPhone)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       >
                         <option value="male">पुरुष</option>
                         <option value="female">महिला</option>
@@ -1082,11 +964,8 @@ const HealthRecords: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         pattern="[0-9]{10}"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.phone && searchPhone ? 'bg-green-50' : ''
-                        }`}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="10 अंकों का नंबर"
-                        readOnly={!!(formData.phone && searchPhone)}
                       />
                     </div>
                     
@@ -1100,11 +979,8 @@ const HealthRecords: React.FC = () => {
                         value={formData.address}
                         onChange={handleInputChange}
                         required
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.address && searchPhone ? 'bg-green-50' : ''
-                        }`}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="पूरा पता"
-                        readOnly={!!(formData.address && searchPhone)}
                       />
                     </div>
                   </div>
@@ -1114,7 +990,6 @@ const HealthRecords: React.FC = () => {
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-4">कैंप की जानकारी</h4>
                   
-                  {/* Camp Search Section */}
                   <div className="mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="md:col-span-2 relative camp-dropdown-container">
@@ -1156,10 +1031,11 @@ const HealthRecords: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleCampSearch}
-                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                          disabled={campSearchLoading}
+                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center justify-center space-x-2"
                         >
                           <Search className="h-4 w-4" />
-                          <span>कैंप खोजें</span>
+                          <span>{campSearchLoading ? 'खोज रहे हैं...' : 'कैंप खोजें'}</span>
                         </button>
                       </div>
                     </div>
@@ -1176,16 +1052,8 @@ const HealthRecords: React.FC = () => {
                         value={formData.visitDate}
                         onChange={handleInputChange}
                         required
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.visitDate && campSearchValue ? 'bg-green-50' : ''
-                        }`}
-                        readOnly={!!(formData.visitDate && campSearchValue)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
-                      {formData.visitDate && campSearchValue && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ कैंप की तारीख स्वचालित रूप से भरी गई
-                        </p>
-                      )}
                     </div>
                     
                     <div>
@@ -1244,11 +1112,11 @@ const HealthRecords: React.FC = () => {
                       )}
                       
                       {selectedVitalTest && vitalTestValue && (
-                        <div>
+                        <div className="flex items-end">
                           <button
                             type="button"
                             onClick={addVitalTest}
-                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                           >
                             <Plus className="h-4 w-4" />
                             <span>जोड़ें</span>
@@ -1266,13 +1134,11 @@ const HealthRecords: React.FC = () => {
                         {Object.entries(customVitals).map(([testKey, value]) => {
                           const testInfo = availableVitalTests.find(test => test.value === testKey);
                           return (
-                            <div key={testKey} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
+                            <div key={testKey} className="bg-white p-3 rounded-lg border border-blue-200 flex items-center justify-between">
                               <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {testInfo?.label}
-                                </div>
-                                <div className="text-lg font-bold text-green-600">
-                                  {value}
+                                <div className="font-medium text-blue-600">{value}</div>
+                                <div className="text-xs text-gray-500">
+                                  {testInfo ? testInfo.label.split('(')[0].trim() : testKey}
                                 </div>
                               </div>
                               <button
@@ -1293,23 +1159,23 @@ const HealthRecords: React.FC = () => {
                   {/* BMI Calculation for Weight and Height */}
                   {customVitals.weight && customVitals.height && (
                     <div className="mt-3 p-3 bg-white rounded-lg border">
-                      <span className="text-sm text-gray-600">
-                        BMI: <span className="font-bold text-lg text-green-600">
-                          {(() => {
-                            const weight = parseFloat(customVitals.weight.split(' ')[0]);
-                            const height = parseFloat(customVitals.height.split(' ')[0]);
-                            return weight && height ? calculateBMI(weight, height) : 'N/A';
-                          })()}
-                        </span>
-                      </span>
+                      <div className="text-center">
+                        <div className="font-bold text-lg text-purple-600">
+                          BMI: {calculateBMI(
+                            parseFloat(customVitals.weight.split(' ')[0]), 
+                            parseFloat(customVitals.height.split(' ')[0])
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">Body Mass Index</div>
+                      </div>
                     </div>
                   )}
                   
                   {Object.keys(customVitals).length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <Activity className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                      <p>कोई टेस्ट नहीं जोड़ा गया है</p>
-                      <p className="text-sm">ऊपर से टेस्ट चुनें और मान दर्ज करें</p>
+                      <p>कोई टेस्ट नहीं जोड़ा गया</p>
+                      <p className="text-sm">ऊपर से टेस्ट चुनकर रिपोर्ट जोड़ें</p>
                     </div>
                   )}
                 </div>
@@ -1327,8 +1193,8 @@ const HealthRecords: React.FC = () => {
                         name="symptoms"
                         value={formData.symptoms}
                         onChange={handleInputChange}
-                        placeholder="कॉमा से अलग करें (जैसे: खांसी, बुखार)"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="लक्षण कॉमा से अलग करें"
                       />
                     </div>
                     
@@ -1343,7 +1209,7 @@ const HealthRecords: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="बीमारी का निदान"
+                        placeholder="निदान दर्ज करें"
                       />
                     </div>
                     
@@ -1356,8 +1222,8 @@ const HealthRecords: React.FC = () => {
                         name="medications"
                         value={formData.medications}
                         onChange={handleInputChange}
-                        placeholder="कॉमा से अलग करें (जैसे: पैरासिटामोल, एस्प्रिन)"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="दवाइयों को कॉमा से अलग करें"
                       />
                     </div>
                     
@@ -1390,29 +1256,151 @@ const HealthRecords: React.FC = () => {
                       onChange={handleInputChange}
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="अतिरिक्त टिप्पणियां और सुझाव..."
+                      placeholder="अतिरिक्त नोट्स..."
                     />
                   </div>
                 </div>
 
-                {/* Form Actions */}
+                {/* Rest of the form sections will continue... */}
                 <div className="flex justify-end space-x-3 pt-4 border-t">
                   <button
                     type="button"
                     onClick={() => setShowAddRecord(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
                   >
                     रद्द करें
                   </button>
                   <button
-                    type="submit"
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center space-x-2"
+                    type="button"
+                    onClick={handleAddRecord}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors duration-200"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>रिकॉर्ड जोड़ें</span>
+                    {loading ? 'सेव हो रहा है...' : 'सेव करें'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Record Detail Modal */}
+      {selectedRecord && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">स्वास्थ्य रिकॉर्ड विवरण</h3>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Patient Info */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">मरीज़ की जानकारी</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">नाम:</span>
+                      <span className="ml-2 font-medium">{selectedRecord.patientName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">आयु:</span>
+                      <span className="ml-2 font-medium">{selectedRecord.age} वर्ष</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">लिंग:</span>
+                      <span className="ml-2 font-medium">{selectedRecord.gender === 'male' ? 'पुरुष' : 'महिला'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">फोन:</span>
+                      <span className="ml-2 font-medium">{selectedRecord.phone}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-gray-500">पता:</span>
+                      <span className="ml-2 font-medium">{selectedRecord.address}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vitals */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">महत्वपूर्ण संकेतक</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    {/* Custom vitals */}
+                    {selectedRecord.vitals.customTests && Object.entries(selectedRecord.vitals.customTests).map(([testKey, value]) => {
+                      const testInfo = availableVitalTests.find(test => test.value === testKey);
+                      return (
+                        <div key={testKey} className="text-center">
+                          <div className="font-bold text-lg text-teal-600">{value}</div>
+                          <div className="text-gray-500 text-xs">
+                            {testInfo ? testInfo.label.split('(')[0].trim() : testKey}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Show message if no vitals */}
+                  {(!selectedRecord.vitals.customTests || Object.keys(selectedRecord.vitals.customTests).length === 0) && (
+                    <div className="text-center py-4 text-gray-500">
+                      <Activity className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p>कोई टेस्ट रिपोर्ट उपलब्ध नहीं है</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Diagnosis & Treatment */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">लक्षण</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRecord.symptoms.map((symptom, index) => (
+                        <span key={index} className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                          {symptom}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">निदान</h4>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{selectedRecord.diagnosis}</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">निर्धारित दवाइयां</h4>
+                    <ul className="list-disc list-inside space-y-1 text-gray-700">
+                      {selectedRecord.medications.map((medication, index) => (
+                        <li key={index}>{medication}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">डॉक्टर के नोट्स</h4>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{selectedRecord.doctorNotes}</p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    onClick={() => setSelectedRecord(null)}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200"
+                  >
+                    बंद करें
+                  </button>
+                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    प्रिंट करें
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

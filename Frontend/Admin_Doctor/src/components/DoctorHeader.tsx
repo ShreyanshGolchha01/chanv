@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Search, User, LogOut } from 'lucide-react';
+import { logout, getUserInfo } from '../utils/authUtils';
 
 interface DoctorHeaderProps {
   title: string;
@@ -9,6 +10,14 @@ interface DoctorHeaderProps {
 const DoctorHeader: React.FC<DoctorHeaderProps> = ({ title, onMenuClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [doctorInfo] = useState(() => {
+    // Try to get user info from cookies/localStorage
+    getUserInfo().then(info => {
+      if (info) {
+        return info;
+      }
+    }).catch(console.error);
+    
+    // Fallback to localStorage for backward compatibility
     const stored = localStorage.getItem('doctorInfo');
     return stored ? JSON.parse(stored) : {
       name: '',
@@ -16,10 +25,17 @@ const DoctorHeader: React.FC<DoctorHeaderProps> = ({ title, onMenuClick }) => {
     };
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem('isDoctorAuthenticated');
-    localStorage.removeItem('doctorInfo');
-    window.location.href = '/doctor/login';
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual cleanup
+      localStorage.removeItem('isDoctorAuthenticated');
+      localStorage.removeItem('doctorInfo');
+      window.location.href = '/';
+    }
   };
 
   return (

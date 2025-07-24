@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import UnifiedLogin from '../pages/UnifiedLogin';
 import Login from '../pages/Login';
@@ -10,6 +10,7 @@ import Schemes from '../pages/Schemes';
 import Reports from '../pages/Reports';
 import Activities from '../pages/Activities';
 import AdminLayout from '../layouts/AdminLayout';
+import { isUserAuthenticated } from '../utils/authUtils';
 
 // Doctor Portal imports
 import DoctorLogin from '../pages/DoctorLogin';
@@ -23,7 +24,32 @@ import DoctorLayout from '../layouts/DoctorLayout';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const auth = await isUserAuthenticated();
+        setIsAuthenticated(auth.isAdmin);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // Fallback to localStorage
+        const fallback = localStorage.getItem('isAuthenticated') === 'true';
+        setIsAuthenticated(fallback);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
+  // Show loading while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
   
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -34,7 +60,32 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Doctor Protected Route Component
 const DoctorProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isDoctorAuthenticated = localStorage.getItem('isDoctorAuthenticated') === 'true';
+  const [isDoctorAuthenticated, setIsDoctorAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const auth = await isUserAuthenticated();
+        setIsDoctorAuthenticated(auth.isDoctor);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // Fallback to localStorage
+        const fallback = localStorage.getItem('isDoctorAuthenticated') === 'true';
+        setIsDoctorAuthenticated(fallback);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
+  // Show loading while checking authentication
+  if (isDoctorAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
   
   if (!isDoctorAuthenticated) {
     return <Navigate to="/" replace />;
