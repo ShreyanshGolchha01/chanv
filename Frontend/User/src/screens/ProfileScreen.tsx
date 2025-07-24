@@ -143,7 +143,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             <MaterialIcons name="work" size={25} color={COLORS.primary} />
           </LinearGradient>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>कर्मचारी ID</Text>
+            <Text style={styles.detailLabel}>विभाग</Text>
             <Text style={styles.detailValue}>{employeeData.employeeId}</Text>
           </View>
         </View>
@@ -187,7 +187,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </View>
         </View>
 
-        <View style={styles.detailRow}>
+        {/* <View style={styles.detailRow}>
           <LinearGradient
             colors={[COLORS.warning + '20', COLORS.warning + '10']}
             style={styles.detailIcon}
@@ -198,7 +198,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
             <Text style={styles.detailLabel}>ज्वाइनिंग डेट</Text>
             <Text style={styles.detailValue}>{employeeData.dateOfJoining}</Text>
           </View>
-        </View>
+        </View> */}
 
         <View style={styles.detailRow}>
           <LinearGradient

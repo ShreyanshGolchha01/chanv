@@ -437,16 +437,22 @@ const handleAddDoctor = async () => {
         </div>
       ),
     },
-    {
-      key: 'assignedCamps',
-      label: 'नियुक्त शिविर',
-      sortable: false,
-      render: () => (
-        <div className="space-y-1">
-
+   {
+  key: 'assignedCamps',
+  label: 'नियुक्त शिविर',
+  sortable: false,
+  render: (row) => (
+    <div className="space-y-1">
+      {(row.assignedCamps ?? []).map((camp: string, index: number) => (
+        <div key={index} className="bg-blue-100 text-blue-900 px-2 py-1 rounded">
+          {camp}
         </div>
-      ),
-    },
+      ))}
+    </div>
+  ),
+}
+,
+
     {
       key: 'actions',
       label: 'कार्य',
@@ -768,7 +774,6 @@ const qualifications = [
     </div>
   )}
 </div>
-
 
 
 

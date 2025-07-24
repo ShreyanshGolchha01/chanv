@@ -164,37 +164,40 @@ const Camps: React.FC = () => {
   };
 
   //=================use effect to load data
-  useEffect(() => {
-    const fetchCamps = async () => {
-      try {
-        const endpoint = `${serverUrl}show_camp.php`;
-        const response = await axios.post(endpoint, {});
-        const data = response.data;
-        
-        const newCamps: Camp[] = data.posts.map((post: any) => ({
-          id: post.id,
-          campName: post.campName || post.location, // fallback to location if campName is missing
-          location: post.location,
-          date: post.DATE,
-          time: `${post.startTime} - ${post.endTime}`,
-          address: post.address,
-          coordinator: post.coordinator,
-          expectedBeneficiaries: parseInt(post.expectedBeneficiaries, 10),
-          doctors: post.doctors ? post.doctors.split(',') : [],
-          services: post.services ? post.services.split(',') : [],
-          status: post.STATUS || 'scheduled',
-          beneficiaries: parseInt(post.beneficiaries || '0', 10),
-        }));
+ useEffect(() => {
+  const fetchCamps = async () => {
+    try {
+      const endpoint = `${serverUrl}show_camp.php`;
+      const response = await axios.post(endpoint, {});
+      console.log("Raw camp response:", response.data);
 
-        // Set the camps array directly, don't append to existing
-        setCamps(newCamps);
-      } catch (error) {
-        console.error("Error fetching camps:", error);
-      }
-    };
+      const data = response.data;
+      const newCamps: Camp[] = Array.isArray(data.posts)
+        ? data.posts.map((post: any) => ({
+            id: post.id,
+            campName: post.campName || post.location || "अनाम शिविर",
+            location: post.location || "स्थान अज्ञात",
+            date: post.DATE || '',
+            time: `${post.startTime || ''} - ${post.endTime || ''}`,
+            address: post.address || '',
+            coordinator: post.coordinator || '',
+            expectedBeneficiaries: parseInt(post.expectedBeneficiaries || '0', 10),
+            doctors: post.doctors ? post.doctors.split(',') : [],
+            services: post.services ? post.services.split(',') : [],
+            status: post.STATUS || 'scheduled',
+            beneficiaries: parseInt(post.beneficiaries || '0', 10),
+          }))
+        : [];
 
-    fetchCamps();
-  }, []); // Run only on component mount
+      setCamps(newCamps);
+    } catch (error) {
+      console.error("Error fetching camps:", error);
+    }
+  };
+
+  fetchCamps();
+}, []);
+// Run only on component mount
 
   //////end of use effect
 useEffect(() => {
@@ -335,8 +338,7 @@ useEffect(() => {
 
   // Replace entire camps array with updated data from backend
   setCamps(newCamps);
-
-  setEditingCamp(null);
+  setShowAddModal(false);
   setIsLoading(false);
   resetForm();
 };
@@ -369,8 +371,10 @@ useEffect(() => {
     beneficiaries: parseInt(post.beneficiaries || '0', 10),
   }));
 
-  setCamps(newCamps); // Replace full list with updated data from backend
-  setDeletingCamp(null);
+  // setCamps(newCamps); // Replace full list with updated data from backend
+  setCamps(newCamps);
+  setShowAddModal(false);
+  setIsLoading(false);
   resetForm();
 };
 
@@ -436,15 +440,16 @@ const openEditModal = (camp: Camp) => {
 
   const columns: TableColumn[] = [
     {
-      key: 'location',
-      label: 'स्थान',
-      render: (value, row) => (
-        <div>
-          <p className="font-medium text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{row.address}</p>
-        </div>
-      ),
-    },
+  key: 'campName',
+  label: 'शिविर का नाम',
+  render: (value, row) => (
+    <div>
+      <p className="font-medium text-gray-900">{value}</p>
+      <p className="text-sm text-gray-500">{row.location}</p>
+    </div>
+  ),
+},
+
     {
       key: 'date',
       label: 'तारीख और समय',
@@ -455,28 +460,36 @@ const openEditModal = (camp: Camp) => {
         </div>
       ),
     },
-    {
-      key: 'doctors',
-      label: 'डॉक्टर',
-      sortable: false,
-      render: (value: string[]) => (
-        <div className="space-y-1">
-          {value.slice(0, 2).map(doctorId => {
-            const doctor = getDoctorById(doctorId);
-            return doctor ? (
-              <p key={doctorId} className="text-sm text-gray-900">{doctor.name}</p>
-            ) : null;
-          })}
-          {value.length > 2 && (
-            <p className="text-xs text-gray-500">+{value.length - 2} और</p>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'coordinator',
-      label: 'समन्वयक',
-    },
+{
+  key: 'doctors',
+  label: 'डॉक्टर',
+  sortable: false,
+  render: (value: string[]) => {
+    return (
+      <div className="space-y-1">
+        {value.slice(0, 2).map((doctorId) => {
+          const doctor = doctors.find((d) => d.id === doctorId);
+          return doctor ? (
+            <p key={doctorId} className="text-sm text-gray-900">
+              {doctor.name}
+            </p>
+          ) : (
+            <p key={doctorId} className="text-sm text-red-500 italic">
+               {doctorId}
+            </p>
+          );
+        })}
+        {value.length > 2 && (
+          <p className="text-xs text-gray-500">+{value.length - 2} और</p>
+        )}
+      </div>
+    );
+  },
+},
+
+
+
+    
     {
       key: 'status',
       label: 'स्थिति',
@@ -497,6 +510,7 @@ const openEditModal = (camp: Camp) => {
         </div>
       ),
     },
+    
     {
       key: 'actions',
       label: 'कार्य',
@@ -741,35 +755,40 @@ const openEditModal = (camp: Camp) => {
 
                       {/* Selected doctors display - UPDATED: Changed to admin portal theme colors */}
                       {formData.assignedDoctors.length > 0 && (
-                        <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
-                          <h4 className="text-sm font-medium text-primary-800 mb-3">
-                            चयनित डॉक्टर ({formData.assignedDoctors.length}):
-                          </h4>
-                          <div className="space-y-2">
-                            {formData.assignedDoctors.map(doctorId => {
-                              const doctor = mockDoctors.find(d => d.id === doctorId);
-                              return doctor ? (
-                                <div key={doctor.id} className="flex items-center justify-between text-sm bg-white p-3 rounded border shadow-sm">
-                                  <div className="flex-1">
-                                    <div className="font-medium text-gray-900">{doctor.name}</div>
-                                    <div className="text-gray-600">{doctor.specialty}</div>
-                                    <div className="text-xs text-gray-500">
-                                      अनुभव: {doctor.experience} वर्ष | {doctor.qualification}
-                                    </div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDoctorToggle(doctor.id)}
-                                    className="ml-3 text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50"
-                                  >
-                                    हटाएं
-                                  </button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-                      )}
+  <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
+    <h4 className="text-sm font-medium text-primary-800 mb-3">
+      चयनित डॉक्टर ({formData.assignedDoctors.length}):
+    </h4>
+    <div className="space-y-2">
+      {formData.assignedDoctors.map(doctorId => {
+        const doctor = doctors.find(d => d.id === doctorId);
+        return doctor ? (
+          <div key={doctor.id} className="flex items-center justify-between text-sm bg-white p-3 rounded border shadow-sm">
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">{doctor.name}</div>
+              <div className="text-gray-600">{doctor.specialty}</div>
+              <div className="text-xs text-gray-500">
+                अनुभव: {doctor.experience} वर्ष | {doctor.qualification?.join(', ')}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleDoctorToggle(doctor.id)}
+              className="ml-3 text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50"
+            >
+              हटाएं
+            </button>
+          </div>
+        ) : (
+          <div key={doctorId} className="text-sm text-red-500">
+            डॉक्टर ID {doctorId} का डेटा नहीं मिला
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
                     </div>
                   </div>
 
