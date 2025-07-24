@@ -18,7 +18,7 @@ import { Ionicons, MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icon
 import ProfileScreen from './ProfileScreen';
 import ReportDetailsScreen from './ReportDetailsScreen';
 import NotificationScreen from './NotificationScreen';
-
+import serverUrl from '../services/Server';
 interface HomeScreenProps {
   userName: string;
   onLogout: () => void;
@@ -49,6 +49,39 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
     // Component initialization without API calls
     setLoading(false);
   }, []);
+
+const formatDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+  //==============================================
+useEffect(() => {
+  const fetchCamps = async () => {
+    try {
+      const response = await fetch(serverUrl + 'get_camps.php');
+      const data = await response.json(); // Parse JSON
+
+      if (data.success) {
+        setNextCamps(data.camps);
+      } else {
+        console.error('Failed to fetch camps');
+      }
+    } catch (error) {
+      console.error('Error fetching camps:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchCamps();
+}, []);
+
+
+  //============================
 
   // Auto scroll function - disabled
   // React.useEffect(() => {
@@ -175,7 +208,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
       style={styles.campCard}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.campDate}>{item.date}</Text>
+        <Text style={styles.campDate}>{formatDate(item.date)}</Text>
         <LinearGradient
           colors={COLORS.gradients.accent.colors}
           start={COLORS.gradients.accent.start}
@@ -185,7 +218,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
           <Text style={styles.statusText}>नया</Text>
         </LinearGradient>
       </View>
-      <Text style={styles.campType}>{item.type}</Text>
+      
+      <Text style={styles.campType}>{item.services}</Text>
+      
       <View style={styles.cardInfo}>
         <View style={styles.infoRow}>
           <LinearGradient
@@ -203,7 +238,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
           >
             <FontAwesome5 name="user-md" size={14} color={COLORS.healthGreen} />
           </LinearGradient>
-          <Text style={styles.campDoctor}>{item.doctor}</Text>
+          <Text style={styles.campDoctor}>{item.doctors}</Text>
         </View>
         <View style={styles.infoRow}>
           <LinearGradient
@@ -212,7 +247,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
           >
             <Ionicons name="time" size={16} color={COLORS.primary} />
           </LinearGradient>
-          <Text style={styles.campTime}>{item.time}</Text>
+          <Text style={styles.campTime}>{item.startTime} To  {item.endTime}</Text>
         </View>
       </View>
     </LinearGradient>

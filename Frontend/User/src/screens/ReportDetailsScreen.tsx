@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import serverUrl from '../services/Server';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -44,6 +46,63 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
   const [loading, setLoading] = useState(true);
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
 
+const [id,setId] = useState('');
+
+useEffect(() => {
+  const showCid = async () => {
+    try {
+      const cid = await AsyncStorage.getItem('cid');
+      setId(""+cid)
+    } catch (e) {
+     
+    }
+  };
+
+  showCid();
+}, []);
+
+
+const formatDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+//=========================
+useEffect(() => {
+  const fetchReports = async () => {
+    try {
+      const response = await fetch(serverUrl + "get_report.php?patientId=" + id);
+      const data = await response.json();
+
+      if (data.success && Array.isArray(data.reports)) {
+        setReportDetails(data.reports);  // ✅ update state here
+      } else {
+        console.warn("No reports found or response format incorrect.");
+        setReportDetails([]); // set empty array if no data
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+//
+  if (id) {
+    fetchReports();
+  }
+}, [id]);
+
+
+const ReportCard = ({ reports }: { reports: any[] }) => {
+  if (!Array.isArray(reports) || reports.length === 0) {
+    return <Text style={styles.noReports}>No reports available</Text>;
+  }
+};
+///==============================
+//
   // Remove backend integration - data will be loaded locally  
   useEffect(() => {
     // Component initialization without API calls
@@ -329,39 +388,63 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
               color={currentReportIndex === reportsArray.length - 1 ? COLORS.gray[400] : COLORS.primary} 
             />
           </TouchableOpacity>
+          
+        </View>
+ 
+    <ScrollView
+  horizontal={true}
+  showsHorizontalScrollIndicator={false}
+ contentContainerStyle={{ ...styles.container11, paddingHorizontal: 1 }}
+>
+  {Array.isArray(reportDetails) && reportDetails.length > 0 ? (
+    reportDetails.map((report) => (
+      <View key={report.id} style={styles.card}>
+        <Text style={styles.title}>{report.campname}</Text>
+        <Text style={styles.date}>🗓️ {formatDate(report.campdate)}</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>👨‍⚕️ Doctor:</Text>
+          <Text style={styles.value}>{report.doctorName}</Text>
         </View>
 
-        <View style={styles.campInfoHeader}>
-          <LinearGradient
-            colors={COLORS.gradients.secondary.colors}
-            start={COLORS.gradients.secondary.start}
-            end={COLORS.gradients.secondary.end}
-            style={styles.campIcon}
-          >
-            <FontAwesome5 name="hospital" size={20} color={COLORS.white} />
-          </LinearGradient>
-          <View style={styles.campInfoDetails}>
-            <Text style={styles.campTitle}>{currentReportData.campInfo.campType}</Text>
-            <Text style={styles.campDate}>{currentReportData.campInfo.date}</Text>
-          </View>
-          {/* Remove the isLatest check since we don't have mock data */}
+        <View style={styles.section}>
+          <Text style={styles.label}>📋 Type:</Text>
+          <Text style={styles.value}>{report.reporttype}</Text>
         </View>
-        
-        <View style={styles.campDetails}>
-          <View style={styles.campDetailRow}>
-            <Ionicons name="location" size={16} color={COLORS.primary} />
-            <Text style={styles.campDetailText}>{currentReportData.campInfo.location}</Text>
-          </View>
-          <View style={styles.campDetailRow}>
-            <FontAwesome5 name="user-md" size={14} color={COLORS.healthGreen} />
-            <Text style={styles.campDetailText}>{currentReportData.campInfo.doctor}</Text>
-          </View>
-          <View style={styles.campDetailRow}>
-            <Ionicons name="time" size={16} color={COLORS.accent} />
-            <Text style={styles.campDetailText}>{currentReportData.campInfo.time}</Text>
-          </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>🤒 Symptoms:</Text>
+          <Text style={styles.value}>{report.symptoms}</Text>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>🔍 Diagnosis:</Text>
+          <Text style={styles.value}>{report.diagnosis}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>💊 Medicines:</Text>
+          <Text style={styles.value}>{report.medicines}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>📊 Condition:</Text>
+          <Text style={styles.value}>{report.condition}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>📝 Notes:</Text>
+          <Text style={styles.value}>{report.notes}</Text>
+        </View>
+      </View>
+    ))
+  ) : (
+    <Text style={{ textAlign: 'center', marginTop: 20 }}>No reports available</Text>
+  )}
+</ScrollView>
+
       </LinearGradient>
+              
 
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
@@ -873,6 +956,64 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: FONTS.weights.bold,
   },
+
+  container: {
+    padding: 10,
+  },
+  noReports: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#777',
+  },
+  card: {
+    backgroundColor: '#fefefe',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  date: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 10,
+  },
+  section: {
+    flexDirection: 'row',
+    marginVertical: 2,
+    flexWrap: 'wrap',
+  },
+  label: {
+    fontWeight: '600',
+    color: '#34495e',
+    marginRight: 5,
+  },
+  value: {
+    flex: 1,
+    color: '#2c3e50',
+  },
+  card12: {
+  width: 300,               // 🔸 fixed width for horizontal layout
+  backgroundColor: '#fefefe',
+  borderRadius: 12,
+  padding: 15,
+  marginRight: 15,          // 🔸 spacing between cards
+  elevation: 3,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+},
+
 });
 
 export default ReportDetailsScreen;

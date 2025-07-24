@@ -14,61 +14,68 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-//import { userAPI, handleAPIError } from '../services/api';
 
 interface ProfileScreenProps {
   onBack?: () => void;
   onLogout?: () => void;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  fullname: string;
+  designation: string;
+  department: string;
+  phoneNumber: string;
+  email: string;
+  address: string;
+  dateOfJoining: string;
+  bloodGroup: string;
+  emergencyContact: string;
+  dateOfBirth: string;
+  age: number;
+  gender: string;
+  familyMembers: number;
+  hasAbhaId: boolean;
+  hasAyushmanCard: boolean;
+}
+
+interface FamilyMember {
+  id: number;
+  name: string;
+  relation: string;
+  dateOfBirth: string;
+  age: number;
+  bloodGroup: string;
+  gender: string;
+  phoneNumber: string;
+  healthId: string;
+  aadharNumber?: string;
+}
+
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
-  // Employee data - will be empty initially
-  const [employeeData, setEmployeeData] = useState({
+  const [userData, setUserData] = useState<UserData>({
     id: '',
     name: '',
-    designation: '',
+    fullname: '',
+    designation: 'Employee',
     department: '',
-    employeeId: '',
     phoneNumber: '',
     email: '',
     address: '',
     dateOfJoining: '',
     bloodGroup: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    dateOfBirth: '',
+    age: 0,
+    gender: '',
+    familyMembers: 0,
+    hasAbhaId: false,
+    hasAyushmanCard: false
   });
 
-  // Family members data
-  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
-  // const [loading, setLoading] = useState(true);
- const [loading, setLoading] = useState(false);
-
-  // Remove backend integration - data will be loaded locally
-  useEffect(() => {
-    // Component initialization without API calls
-    //loadProfileData();
-    setLoading(false);
-  }, []);
-
-  // const loadProfileData = async () => {
-  //   try {
-  //     setLoading(true);
-  //     // Get user profile data
-  //     const profileResponse = await userAPI.getProfile();
-  //     if (profileResponse.success) {
-  //       setEmployeeData(profileResponse.data);
-  //     }
-
-  //     // Get family members data (from health records)
-  //     const healthResponse = await userAPI.getHealthRecords();
-  //     if (healthResponse.success && healthResponse.data.familyMembers) {
-  //       setFamilyMembers(healthResponse.data.familyMembers || []);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error loading profile data:', error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',
@@ -80,12 +87,154 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
     phoneNumber: ''
   });
 
-  const handleAddMember = () => {
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch('http://192.168.1.6/chanv/show_Patients.php', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile data');
+      }
+
+      const data = await response.json();
+      
+      if (data.posts && data.posts.length > 0) {
+        const userData = data.posts[0];
+        
+        setUserData({
+          id: userData.id.toString(),
+          name: userData.fullname || userData.name,
+          fullname: userData.fullname || userData.name,
+          designation: 'Employee',
+          department: userData.department,
+          phoneNumber: userData.phoneNumber || userData.phone,
+          email: userData.email,
+          address: userData.address,
+          dateOfJoining: '',
+          bloodGroup: userData.bloodGroup,
+          emergencyContact: '',
+          dateOfBirth: userData.dateOfBirth,
+          age: userData.age,
+          gender: userData.gender,
+          familyMembers: userData.familyMembers || userData.familymember,
+          hasAbhaId: userData.hasAbhaId,
+          hasAyushmanCard: userData.hasAyushmanCard
+        });
+
+        // If your API returns family members, you can set them here
+        // For now, we'll keep the local family members functionality
+      }
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+// // const renderFamilyMember = (member: FamilyMember) => (
+//   <LinearGradient
+//     key={member.id.toString()}
+//     colors={COLORS.gradients.card.colors}
+//     start={COLORS.gradients.card.start}
+//     end={COLORS.gradients.card.end}
+//     style={styles.familyMemberCard}
+//   >
+//     <View style={styles.memberHeader}>
+//       <LinearGradient
+//         colors={COLORS.gradients.accent.colors}
+//         start={COLORS.gradients.accent.start}
+//         end={COLORS.gradients.accent.end}
+//         style={styles.memberAvatar}
+//       >
+//         <MaterialIcons 
+//           name="account-circle" 
+//           size={24} 
+//           color={COLORS.white} 
+//         />
+//       </LinearGradient>
+//       <View style={styles.memberInfo}>
+//         <Text style={styles.memberName}>{member.name}</Text>
+//         <Text style={styles.memberRelation}>{member.relation}</Text>
+//       </View>
+//       <View style={styles.memberAge}>
+//         <Text style={styles.ageText}>{member.age} वर्ष</Text>
+//       </View>
+//     </View>
+
+//     <View style={styles.memberDetails}>
+//       {member.bloodGroup && (
+//         <View style={styles.memberDetailRow}>
+//           <MaterialIcons name="opacity" size={14} color={COLORS.error} />
+//           <Text style={styles.memberDetailText}>ब्लड ग्रुप: {member.bloodGroup}</Text>
+//         </View>
+//       )}
+      
+//       {member.phoneNumber && (
+//         <View style={styles.memberDetailRow}>
+//           <MaterialIcons name="phone" size={14} color={COLORS.healthBlue} />
+//           <Text style={styles.memberDetailText}>फोन: {member.phoneNumber}</Text>
+//         </View>
+//       )}
+      
+//       {member.aadharNumber && (
+//         <View style={styles.memberDetailRow}>
+//           <MaterialIcons name="credit-card" size={14} color={COLORS.primary} />
+//           <Text style={styles.memberDetailText}>आधार: {member.aadharNumber}</Text>
+//         </View>
+//       )}
+      
+//       <View style={styles.memberDetailRow}>
+//         <MaterialIcons name="local-hospital" size={14} color={COLORS.accent} />
+//         <Text style={styles.memberDetailText}>हेल्थ ID: {member.healthId}</Text>
+//       </View>
+
+//       {member.gender && (
+//         <View style={styles.memberDetailRow}>
+//           <MaterialIcons name="person" size={14} color={COLORS.accent} />
+//           <Text style={styles.memberDetailText}>लिंग: {member.gender}</Text>
+//         </View>
+//       )}
+
+//       {member.dateOfBirth && (
+//         <View style={styles.memberDetailRow}>
+//           <MaterialIcons name="cake" size={14} color={COLORS.warning} />
+//           <Text style={styles.memberDetailText}>जन्म तारीख: {member.dateOfBirth}</Text>
+//         </View>
+//       )}
+//     </View>
+
+//     <TouchableOpacity 
+//       style={styles.editMemberButton}
+//       onPress={() => Alert.alert('संपादित करें', `${member.name} की जानकारी संपादित करें`)}
+//       activeOpacity={0.8}
+//     >
+//       <MaterialIcons name="edit" size={16} color={COLORS.primary} />
+//       <Text style={styles.editMemberText}>संपादित करें</Text>
+//     </TouchableOpacity>
+//   </LinearGradient>
+// // );
+   const handleAddMember = () => {
     if (newMember.name && newMember.relation && newMember.age) {
-      const member = {
+      const member: FamilyMember = {
         id: familyMembers.length + 1,
-        ...newMember,
+        name: newMember.name,
+        relation: newMember.relation,
+        dateOfBirth: newMember.dateOfBirth,
         age: parseInt(newMember.age),
+        bloodGroup: newMember.bloodGroup,
+        gender: newMember.gender,
+        phoneNumber: newMember.phoneNumber,
         healthId: `FAM00${familyMembers.length + 1}`
       };
       setFamilyMembers([...familyMembers, member]);
@@ -104,8 +253,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
       Alert.alert('त्रुटि', 'कृपया सभी आवश्यक फील्ड भरें।');
     }
   };
-
-  const renderEmployeeDetails = () => (
+   const renderEmployeeDetails = () => (
     <LinearGradient
       colors={COLORS.gradients.card.colors}
       start={COLORS.gradients.card.start}
@@ -122,9 +270,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           <MaterialIcons name="account-circle" size={40} color={COLORS.white} />
         </LinearGradient>
         <View style={styles.employeeInfo}>
-          <Text style={styles.employeeName}>{employeeData.name}</Text>
-          <Text style={styles.employeeDesignation}>{employeeData.designation}</Text>
-          <Text style={styles.employeeDepartment}>{employeeData.department}</Text>
+          <Text style={styles.employeeName}>{userData.fullname || userData.name}</Text>
+          <Text style={styles.employeeDesignation}>{userData.designation}</Text>
+          <Text style={styles.employeeDepartment}>{userData.department}</Text>
         </View>
         <LinearGradient
           colors={['#27ae60', '#2ecc71']}
@@ -144,7 +292,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>विभाग</Text>
-            <Text style={styles.detailValue}>{employeeData.employeeId}</Text>
+            <Text style={styles.detailValue}>{userData.department}</Text>
           </View>
         </View>
 
@@ -157,7 +305,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>फोन नंबर</Text>
-            <Text style={styles.detailValue}>{employeeData.phoneNumber}</Text>
+            <Text style={styles.detailValue}>{userData.phoneNumber}</Text>
           </View>
         </View>
 
@@ -170,7 +318,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>ईमेल</Text>
-            <Text style={styles.detailValue}>{employeeData.email}</Text>
+            <Text style={styles.detailValue}>{userData.email}</Text>
           </View>
         </View>
 
@@ -183,22 +331,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>पता</Text>
-            <Text style={styles.detailValue}>{employeeData.address}</Text>
+            <Text style={styles.detailValue}>{userData.address}</Text>
           </View>
         </View>
 
-        {/* <View style={styles.detailRow}>
+        <View style={styles.detailRow}>
           <LinearGradient
             colors={[COLORS.warning + '20', COLORS.warning + '10']}
             style={styles.detailIcon}
           >
-            <MaterialIcons name="today" size={25} color={COLORS.warning} />
+            <MaterialIcons name="cake" size={25} color={COLORS.warning} />
           </LinearGradient>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>ज्वाइनिंग डेट</Text>
-            <Text style={styles.detailValue}>{employeeData.dateOfJoining}</Text>
+            <Text style={styles.detailLabel}>जन्म तारीख</Text>
+            <Text style={styles.detailValue}>{userData.dateOfBirth}</Text>
           </View>
-        </View> */}
+        </View>
 
         <View style={styles.detailRow}>
           <LinearGradient
@@ -209,221 +357,61 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </LinearGradient>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>ब्लड ग्रुप</Text>
-            <Text style={styles.detailValue}>{employeeData.bloodGroup}</Text>
+            <Text style={styles.detailValue}>{userData.bloodGroup}</Text>
           </View>
         </View>
-      </View>
-    </LinearGradient>
-  );
 
-  const renderFamilyMember = (member: any) => (
-    <LinearGradient
-      key={member.id}
-      colors={COLORS.gradients.card.colors}
-      start={COLORS.gradients.card.start}
-      end={COLORS.gradients.card.end}
-      style={styles.familyMemberCard}
-    >
-      <View style={styles.memberHeader}>
-        <LinearGradient
-          colors={COLORS.gradients.accent.colors}
-          start={COLORS.gradients.accent.start}
-          end={COLORS.gradients.accent.end}
-          style={styles.memberAvatar}
-        >
-          <MaterialIcons 
-            name="account-circle" 
-            size={24} 
-            color={COLORS.white} 
-          />
-        </LinearGradient>
-        <View style={styles.memberInfo}>
-          <Text style={styles.memberName}>{member.name}</Text>
-          <Text style={styles.memberRelation}>{member.relation}</Text>
-        </View>
-        <View style={styles.memberAge}>
-          <Text style={styles.ageText}>{member.age} वर्ष</Text>
-        </View>
-      </View>
-
-      <View style={styles.memberDetails}>
-        <View style={styles.memberDetailRow}>
-          <MaterialIcons name="opacity" size={14} color={COLORS.error} />
-          <Text style={styles.memberDetailText}>ब्लड ग्रुप: {member.bloodGroup}</Text>
-        </View>
-        
-        {member.phoneNumber && (
-          <View style={styles.memberDetailRow}>
-            <MaterialIcons name="phone" size={14} color={COLORS.healthBlue} />
-            <Text style={styles.memberDetailText}>फोन: {member.phoneNumber}</Text>
+        {userData.hasAbhaId && (
+          <View style={styles.detailRow}>
+            <LinearGradient
+              colors={[COLORS.healthBlue + '20', COLORS.healthBlue + '10']}
+              style={styles.detailIcon}
+            >
+              <MaterialIcons name="credit-card" size={25} color={COLORS.healthBlue} />
+            </LinearGradient>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>ABHA ID</Text>
+              <Text style={styles.detailValue}>Registered</Text>
+            </View>
           </View>
         )}
-        
-        <View style={styles.memberDetailRow}>
-          <MaterialIcons name="credit-card" size={14} color={COLORS.primary} />
-          <Text style={styles.memberDetailText}>आधार: {member.aadharNumber}</Text>
-        </View>
-        
-        <View style={styles.memberDetailRow}>
-          <MaterialIcons name="local-hospital" size={14} color={COLORS.accent} />
-          <Text style={styles.memberDetailText}>हेल्थ ID: {member.healthId}</Text>
-        </View>
-      </View>
 
-      <TouchableOpacity 
-        style={styles.editMemberButton}
-        onPress={() => Alert.alert('संपादित करें', `${member.name} की जानकारी संपादित करें`)}
-        activeOpacity={0.8}
-      >
-        <MaterialIcons name="edit" size={16} color={COLORS.primary} />
-        <Text style={styles.editMemberText}>संपादित करें</Text>
-      </TouchableOpacity>
+        {userData.hasAyushmanCard && (
+          <View style={styles.detailRow}>
+            <LinearGradient
+              colors={[COLORS.healthGreen + '20', COLORS.healthGreen + '10']}
+              style={styles.detailIcon}
+            >
+              <MaterialIcons name="local-hospital" size={25} color={COLORS.healthGreen} />
+            </LinearGradient>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailLabel}>Ayushman Card</Text>
+              <Text style={styles.detailValue}>Available</Text>
+            </View>
+          </View>
+        )}
+      </View>
     </LinearGradient>
   );
 
-  const renderAddMemberModal = () => (
-    <Modal
-      visible={showAddMemberModal}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={() => setShowAddMemberModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <LinearGradient
-          colors={COLORS.gradients.card.colors}
-          start={COLORS.gradients.card.start}
-          end={COLORS.gradients.card.end}
-          style={styles.modalContent}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>नया सदस्य जोड़ें</Text>
-            <TouchableOpacity onPress={() => setShowAddMemberModal(false)}>
-              <MaterialIcons name="close" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalForm}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>नाम *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.name}
-                onChangeText={(text) => setNewMember({...newMember, name: text})}
-                placeholder="पूरा नाम दर्ज करें"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>रिश्ता *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.relation}
-                onChangeText={(text) => setNewMember({...newMember, relation: text})}
-                placeholder="रिश्ता दर्ज करें (जैसे: पत्नी, पुत्र, पुत्री)"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>जन्म तारीख *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.dateOfBirth}
-                onChangeText={(text) => setNewMember({...newMember, dateOfBirth: text})}
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>उम्र *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.age}
-                onChangeText={(text) => setNewMember({...newMember, age: text})}
-                placeholder="उम्र दर्ज करें"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>ब्लड ग्रुप *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.bloodGroup}
-                onChangeText={(text) => setNewMember({...newMember, bloodGroup: text})}
-                placeholder="ब्लड ग्रुप दर्ज करें (जैसे: A+, B-, O+)"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>लिंग *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.gender}
-                onChangeText={(text) => setNewMember({...newMember, gender: text})}
-                placeholder="लिंग दर्ज करें (पुरुष/महिला)"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>फोन नंबर</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newMember.phoneNumber}
-                onChangeText={(text) => setNewMember({...newMember, phoneNumber: text})}
-                placeholder="फोन नंबर दर्ज करें"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="phone-pad"
-              />
-            </View>
-          </ScrollView>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => setShowAddMemberModal(false)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.cancelButtonText}>रद्द करें</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={handleAddMember}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={COLORS.gradients.primary.colors}
-                start={COLORS.gradients.primary.start}
-                end={COLORS.gradients.primary.end}
-                style={styles.addButtonGradient}
-              >
-                <Text style={styles.addButtonText}>जोड़ें</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
       </View>
-    </Modal>
-  );
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Employee Details Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>कर्मचारी विवरण</Text>
           {renderEmployeeDetails()}
         </View>
 
-        {/* Family Members Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>परिवारिक सदस्य</Text>
@@ -443,10 +431,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-          {familyMembers.map(renderFamilyMember)}
+          {/* {familyMembers.map(renderFamilyMember)} */}
         </View>
 
-        {/* Logout Section */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.logoutButton}
@@ -474,8 +461,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {renderAddMemberModal()}
     </View>
   );
 };

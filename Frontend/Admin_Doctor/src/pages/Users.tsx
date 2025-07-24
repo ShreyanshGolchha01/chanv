@@ -114,7 +114,7 @@ const Users: React.FC = () => {
         </div>
         <button className="btn-primary flex items-center space-x-2">
           <Download className="h-4 w-4" />
-          <span>Export All Data</span>
+          <span>डेटा निर्यात करें</span>
         </button>
       </div>
 
@@ -175,12 +175,12 @@ const Users: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">नाम</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">कर्मचारी</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">विभाग</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ब्लड ग्रुप</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">संपर्क</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">कार्रवाई</th>
                 <th></th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">रिपोर्ट</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">

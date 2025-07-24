@@ -31,6 +31,18 @@ const PatientsManagement: React.FC = () => {
   const [selectedFilterValue, setSelectedFilterValue] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
+const [showAddPatientForm, setShowAddPatientForm] = useState(false);
+const [isRelative, setIsRelative] = useState<'yes' | 'no' | ''>('');
+const [relativePhone, setRelativePhone] = useState('');
+const [relation, setRelation] = useState('');
+const [newPatientData, setNewPatientData] = useState({
+  name: '',
+  dateOfBirth: '',
+  age: '',
+  bloodGroup: '',
+  gender: 'male' as 'male' | 'female' | 'other',
+  phone: ''
+});
 
 
 
@@ -68,6 +80,20 @@ const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
     hasAbhaId: 'no' as 'yes' | 'no',
     hasAyushmanCard: 'no' as 'yes' | 'no'
   });
+};
+
+const resetPatientForm = () => {
+  setNewPatientData({
+    name: '',
+    dateOfBirth: '',
+    age: '',
+    bloodGroup: '',
+    gender: 'male' as 'male' | 'female' | 'other',
+    phone: ''
+  });
+  setIsRelative('');
+  setRelativePhone('');
+  setRelation('');
 };
 //========================
 useEffect(() => {
@@ -322,6 +348,77 @@ const endpoint = `${serverUrl}add_patient.php`;
       setEditingPatient(null);
     alert('मरीज़ सफलतापूर्वक जोड़ा गया!');
   };
+
+  const handleAddNewPatient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!newPatientData.name || !newPatientData.dateOfBirth || !newPatientData.age || !newPatientData.gender) {
+      alert('कृपया सभी आवश्यक फ़ील्ड भरें');
+      return;
+    }
+
+    // Phone validation - required only if not a relative
+    if (isRelative === 'no' && !newPatientData.phone) {
+      alert('कृपया फोन नंबर दर्ज करें');
+      return;
+    }
+
+    // Phone number validation if provided
+    if (newPatientData.phone && !/^\d{10}$/.test(newPatientData.phone)) {
+      alert('फोन नंबर 10 अंकों का होना चाहिए');
+      return;
+    }
+
+    // Relative validation
+    if (isRelative === 'yes') {
+      if (!relativePhone || !relation) {
+        alert('कृपया कर्मचारी का मोबाइल नंबर और रिश्ता दर्ज करें');
+        return;
+      }
+      if (!/^\d{10}$/.test(relativePhone)) {
+        alert('कर्मचारी का फोन नंबर 10 अंकों का होना चाहिए');
+        return;
+      }
+    }
+
+    try {
+      // Here you would make API call to add patient
+      // For now, we'll just add to local state
+      const newPatientEntry: Patient = {
+        id: (patients.length + 1).toString(),
+        name: newPatientData.name,
+        email: '',
+        phone: newPatientData.phone || '',
+        password: '',
+        dateOfBirth: newPatientData.dateOfBirth,
+        age: parseInt(newPatientData.age),
+        gender: newPatientData.gender,
+        bloodGroup: newPatientData.bloodGroup,
+        address: '',
+        lastVisit: new Date().toISOString(),
+        healthStatus: 'good',
+        familyMembers: 0,
+        department: '',
+        hasAbhaId: 'no',
+        hasAyushmanCard: 'no'
+      };
+
+      setPatients([...patients, newPatientEntry]);
+      setShowAddPatientForm(false);
+      resetPatientForm();
+      
+      if (isRelative === 'yes') {
+        alert(`नया मरीज़ (${relation}) सफलतापूर्वक जोड़ा गया!`);
+      } else {
+        alert('नया मरीज़ सफलतापूर्वक जोड़ा गया!');
+      }
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      alert('मरीज़ जोड़ते समय त्रुटि हुई।');
+    }
+  };
+
   //=====================================
 
 
@@ -591,6 +688,17 @@ const endpoint = `${serverUrl}add_patient.php`;
     onClick={() => {
       setEditingPatient(null);
       setShowAddPatient(true);
+    }}
+    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+  >
+    <Plus className="h-4 w-4" />
+    <span>नया कर्मचारी जोड़ें</span>
+  </button>
+
+  {/* Add Patient Form Button */}
+  <button
+    onClick={() => {
+      setShowAddPatientForm(true);
     }}
     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
   >
@@ -1082,6 +1190,203 @@ const endpoint = `${serverUrl}add_patient.php`;
                 <button
                   type="button"
                   onClick={editingPatient ? handleEditPatient : handleAddPatient}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  मरीज़ जोड़ें
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Patient Form Modal */}
+      {showAddPatientForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">नया मरीज़ जोड़ें</h3>
+              <button
+                onClick={() => {
+                  resetPatientForm();
+                  setShowAddPatientForm(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddNewPatient} className="space-y-4">
+              {/* Are you relative of employee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  क्या आप किसी कर्मचारी के रिश्तेदार हैं? *
+                </label>
+                <select
+                  value={isRelative}
+                  onChange={(e) => setIsRelative(e.target.value as 'yes' | 'no')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">चयन करें</option>
+                  <option value="yes">हाँ</option>
+                  <option value="no">नहीं</option>
+                </select>
+              </div>
+
+              {/* Employee Mobile Number - Only if relative */}
+              {isRelative === 'yes' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    कर्मचारी का मोबाइल नंबर *
+                  </label>
+                  <input
+                    type="tel"
+                    value={relativePhone}
+                    onChange={(e) => setRelativePhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="10 अंकों का मोबाइल नंबर"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Relation - Only if relative */}
+              {isRelative === 'yes' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    रिश्ता *
+                  </label>
+                  <input
+                    type="text"
+                    value={relation}
+                    onChange={(e) => setRelation(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="रिश्ता दर्ज करें (जैसे: पत्नी, पति, बेटा, बेटी आदि)"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  मरीज़ का नाम *
+                </label>
+                <input
+                  type="text"
+                  value={newPatientData.name}
+                  onChange={(e) => setNewPatientData({...newPatientData, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="पूरा नाम दर्ज करें"
+                  required
+                />
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  जन्म तिथि *
+                </label>
+                <input
+                  type="date"
+                  value={newPatientData.dateOfBirth}
+                  onChange={(e) => setNewPatientData({...newPatientData, dateOfBirth: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Age */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  उम्र *
+                </label>
+                <input
+                  type="number"
+                  value={newPatientData.age}
+                  onChange={(e) => setNewPatientData({...newPatientData, age: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="उम्र दर्ज करें"
+                  min="0"
+                  max="120"
+                  required
+                />
+              </div>
+
+              {/* Blood Group */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  रक्त समूह (वैकल्पिक)
+                </label>
+                <select
+                  value={newPatientData.bloodGroup}
+                  onChange={(e) => setNewPatientData({...newPatientData, bloodGroup: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">रक्त समूह चुनें (वैकल्पिक)</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  लिंग *
+                </label>
+                <select
+                  value={newPatientData.gender}
+                  onChange={(e) => setNewPatientData({...newPatientData, gender: e.target.value as 'male' | 'female' | 'other'})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                >
+                  <option value="male">पुरुष</option>
+                  <option value="female">महिला</option>
+                  <option value="other">अन्य</option>
+                </select>
+              </div>
+
+              {/* Phone Number - Required only if not relative */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  फोन नंबर {isRelative === 'no' ? '*' : '(वैकल्पिक)'}
+                </label>
+                <input
+                  type="tel"
+                  value={newPatientData.phone}
+                  onChange={(e) => setNewPatientData({...newPatientData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="10 अंकों का मोबाइल नंबर"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  required={isRelative === 'no'}
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddPatientForm(false);
+                    resetPatientForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  रद्द करें
+                </button>
+                <button
+                  type="submit"
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   मरीज़ जोड़ें

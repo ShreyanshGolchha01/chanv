@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search,
   Calendar,
@@ -14,8 +14,7 @@ import {
   CheckCircle,
   Clock,
   Stethoscope,
-  Thermometer,
-  Weight
+  Thermometer
 } from 'lucide-react';
 
 interface HealthRecord {
@@ -53,6 +52,36 @@ const HealthRecords: React.FC = () => {
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   
+  // State for patient search
+  const [isEmployeeRelative, setIsEmployeeRelative] = useState<'employee' | 'relative' | 'others' | ''>('');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [foundRelatives, setFoundRelatives] = useState<any[]>([]);
+  const [selectedRelativeId, setSelectedRelativeId] = useState('');
+  const [showRelativeDropdown, setShowRelativeDropdown] = useState(false);
+  
+  // State for camp search
+  const [showCampDropdown, setShowCampDropdown] = useState(false);
+  const [foundCamps, setFoundCamps] = useState<any[]>([]);
+  const [campSearchValue, setCampSearchValue] = useState('');
+
+  // Click outside handler for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.camp-dropdown-container')) {
+        setShowCampDropdown(false);
+      }
+      if (!target.closest('.relative-dropdown-container')) {
+        setShowRelativeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
   // State for dynamic vital signs
   const [selectedVitalTest, setSelectedVitalTest] = useState('');
   const [vitalTestValue, setVitalTestValue] = useState('');
@@ -61,7 +90,6 @@ const HealthRecords: React.FC = () => {
   // Form state for new record
   const [formData, setFormData] = useState({
     patientName: '',
-    patientId: '',
     age: '',
     gender: 'male' as 'male' | 'female',
     phone: '',
@@ -98,53 +126,141 @@ const HealthRecords: React.FC = () => {
     }
   };
 
-  // Function to fetch patient details by ID
-  const fetchPatientDetails = (patientId: string) => {
-    // Empty patients database - Connect to your backend
-    const patientsDatabase: any[] = [];
-
-    const patient = patientsDatabase.find(p => p.id === patientId || p.id === `P${patientId}`);
-    
-    if (patient) {
-      setFormData(prev => ({
-        ...prev,
-        patientName: patient.name,
-        age: patient.age.toString(),
-        gender: patient.gender,
-        phone: patient.phone,
-        address: patient.address
-      }));
-      return true;
+  // Function to search for patient/employee
+  const handlePatientSearch = async () => {
+    if (!searchPhone.trim()) {
+      alert('कृपया फोन नंबर दर्ज करें');
+      return;
     }
-    return false;
+
+    if (!/^\d{10}$/.test(searchPhone.trim())) {
+      alert('कृपया 10 अंकों का वैध फोन नंबर दर्ज करें');
+      return;
+    }
+
+    try {
+      if (isEmployeeRelative === 'employee') {
+        // Search for employee directly
+        // API call to search employee by phone number
+        // const response = await axios.post(`${serverUrl}search_employee.php`, { phone: searchPhone });
+        
+        // For now, just show alert - you'll need to implement API call
+        alert('कर्मचारी खोज API को implement करें');
+        
+        // Mock response - remove this when API is ready
+        // If employee found, fill the form
+        // setFormData(prev => ({
+        //   ...prev,
+        //   patientName: 'Employee Name',
+        //   age: '35',
+        //   gender: 'male',
+        //   phone: searchPhone,
+        //   address: 'Employee Address'
+        // }));
+      } else if (isEmployeeRelative === 'relative') {
+        // Search for relatives of employee
+        // API call to get all relatives of employee
+        // const response = await axios.post(`${serverUrl}search_relatives.php`, { employeePhone: searchPhone });
+        
+        // For now, just show alert - you'll need to implement API call
+        alert('रिश्तेदार खोज API को implement करें');
+        
+        // Mock response - remove this when API is ready
+        // const relatives = response.data.relatives || [];
+        // setFoundRelatives(relatives);
+        // setShowRelativeDropdown(relatives.length > 0);
+      } else if (isEmployeeRelative === 'others') {
+        // Direct search by phone number for any patient
+        // API call to search patient by phone number
+        // const response = await axios.post(`${serverUrl}search_patient.php`, { phone: searchPhone });
+        
+        // For now, just show alert - you'll need to implement API call
+        alert('मरीज़ खोज API को implement करें');
+        
+        // Mock response - remove this when API is ready
+        // If patient found, fill the form directly
+        // setFormData(prev => ({
+        //   ...prev,
+        //   patientName: 'Patient Name',
+        //   age: '30',
+        //   gender: 'female',
+        //   phone: searchPhone,
+        //   address: 'Patient Address'
+        // }));
+      }
+    } catch (error) {
+      console.error('Patient search error:', error);
+      alert('मरीज़ खोजते समय त्रुटि हुई');
+    }
   };
 
-  // Function to handle patient ID change
-  const handlePatientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const patientId = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      patientId: patientId
-    }));
-
-    // Auto-fetch patient details if ID is provided
-    if (patientId.trim()) {
-      const found = fetchPatientDetails(patientId.trim());
-      if (!found && patientId.length >= 3) {
-        // Try with P prefix if not found
-        fetchPatientDetails(`P${patientId.trim()}`);
-      }
-    } else {
-      // Clear patient details if ID is empty
+  // Function to handle relative selection
+  const handleRelativeSelection = (relativeId: string) => {
+    const selectedRelative = foundRelatives.find(rel => rel.id === relativeId);
+    if (selectedRelative) {
       setFormData(prev => ({
         ...prev,
-        patientName: '',
-        age: '',
-        gender: 'male',
-        phone: '',
-        address: ''
+        patientName: selectedRelative.name,
+        age: selectedRelative.age.toString(),
+        gender: selectedRelative.gender,
+        phone: selectedRelative.phone || '',
+        address: selectedRelative.address || ''
       }));
+      setShowRelativeDropdown(false);
     }
+  };
+
+  // Function to search for camps
+  const handleCampSearch = async () => {
+    try {
+      // API call to get user's assigned camps
+      // const response = await axios.post(`${serverUrl}get_user_camps.php`, { userId: currentUserId });
+      
+      // For now, just show alert - you'll need to implement API call
+      alert('कैंप खोज API को implement करें');
+      
+      // Mock response structure - remove this when API is ready
+      // const camps = response.data.camps || [];
+      // setFoundCamps(camps);
+      // setShowCampDropdown(camps.length > 0);
+    } catch (error) {
+      console.error('Camp search error:', error);
+      alert('कैंप खोजते समय त्रुटि हुई');
+    }
+  };
+
+  // Function to handle camp selection
+  const handleCampSelection = (camp: any) => {
+    setFormData(prev => ({
+      ...prev,
+      camp: camp.name,
+      visitDate: camp.date
+    }));
+    setCampSearchValue(camp.name);
+    setShowCampDropdown(false);
+  };
+
+  // Function to reset patient search
+  const resetPatientSearch = () => {
+    setIsEmployeeRelative('');
+    setSearchPhone('');
+    setFoundRelatives([]);
+    setSelectedRelativeId('');
+    setShowRelativeDropdown(false);
+    // Reset camp search as well
+    setShowCampDropdown(false);
+    setFoundCamps([]);
+    setCampSearchValue('');
+    setFormData(prev => ({
+      ...prev,
+      patientName: '',
+      age: '',
+      gender: 'male',
+      phone: '',
+      address: '',
+      camp: '',
+      visitDate: ''
+    }));
   };
 
   // Function to calculate BMI
@@ -216,7 +332,7 @@ const HealthRecords: React.FC = () => {
     const newRecord: HealthRecord = {
       id: generateId(),
       patientName: formData.patientName,
-      patientId: formData.patientId || `P${String(healthRecords.length + 1).padStart(3, '0')}`,
+      patientId: `P${String(healthRecords.length + 1).padStart(3, '0')}`,
       age: Number(formData.age),
       gender: formData.gender,
       phone: formData.phone,
@@ -246,7 +362,6 @@ const HealthRecords: React.FC = () => {
     // Reset form
     setFormData({
       patientName: '',
-      patientId: '',
       age: '',
       gender: 'male',
       phone: '',
@@ -266,10 +381,11 @@ const HealthRecords: React.FC = () => {
       doctorNotes: ''
     });
     
-    // Reset custom vitals
+    // Reset custom vitals and patient search
     setCustomVitals({});
     setSelectedVitalTest('');
     setVitalTestValue('');
+    resetPatientSearch();
   };
 
   const filteredRecords = healthRecords.filter(record => {
@@ -799,45 +915,100 @@ const HealthRecords: React.FC = () => {
                 {/* Patient Basic Information */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-medium text-gray-900">मरीज़ की बुनियादी जानकारी</h4>
-                    {formData.patientId && formData.patientName && (
+                    <h4 className="font-medium text-gray-900">मरीज़ खोजें</h4>
+                    {formData.patientName && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            patientId: '',
-                            patientName: '',
-                            age: '',
-                            gender: 'male',
-                            phone: '',
-                            address: ''
-                          }));
-                        }}
+                        onClick={resetPatientSearch}
                         className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 transition-colors"
                       >
-                        मैन्युअल एंट्री करें
+                        रीसेट करें
                       </button>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  
+                  {/* Patient Search Section */}
+                  <div className="space-y-4 mb-6">
+                    {/* Employee or Relative Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        मरीज़ ID
+                        मरीज़ का प्रकार *
                       </label>
-                      <input
-                        type="text"
-                        name="patientId"
-                        value={formData.patientId}
-                        onChange={handlePatientIdChange}
+                      <select
+                        value={isEmployeeRelative}
+                        onChange={(e) => setIsEmployeeRelative(e.target.value as 'employee' | 'relative' | 'others')}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="P001, P002... या 001, 002..."
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        मरीज़ ID डालने पर उनकी जानकारी automatic भर जाएगी
-                      </p>
+                        required
+                      >
+                        <option value="">चयन करें</option>
+                        <option value="employee">कर्मचारी</option>
+                        <option value="relative">कर्मचारी का रिश्तेदार</option>
+                        <option value="others">अन्य (फोन नंबर से खोजें)</option>
+                      </select>
                     </div>
-                    
+
+                    {/* Phone Number Search */}
+                    {isEmployeeRelative && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {isEmployeeRelative === 'employee' ? 'कर्मचारी का फोन नंबर' : 
+                             isEmployeeRelative === 'relative' ? 'कर्मचारी का फोन नंबर' : 
+                             'मरीज़ का फोन नंबर'} *
+                          </label>
+                          <input
+                            type="tel"
+                            value={searchPhone}
+                            onChange={(e) => setSearchPhone(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="10 अंकों का मोबाइल नंबर"
+                            pattern="[0-9]{10}"
+                            maxLength={10}
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={handlePatientSearch}
+                            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <Search className="h-4 w-4" />
+                            <span>खोजें</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Relatives Dropdown */}
+                    {showRelativeDropdown && foundRelatives.length > 0 && (
+                      <div className="relative-dropdown-container">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          रिश्तेदार चुनें *
+                        </label>
+                        <select
+                          value={selectedRelativeId}
+                          onChange={(e) => {
+                            setSelectedRelativeId(e.target.value);
+                            if (e.target.value) {
+                              handleRelativeSelection(e.target.value);
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="">रिश्तेदार चुनें</option>
+                          {foundRelatives.map((relative) => (
+                            <option key={relative.id} value={relative.id}>
+                              {relative.name} ({relative.relation}) - {relative.age} वर्ष
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Patient Details (Auto-filled or Manual) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         मरीज़ का नाम *
@@ -849,12 +1020,12 @@ const HealthRecords: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientId && formData.patientName ? 'bg-green-50' : ''
+                          formData.patientName && searchPhone ? 'bg-green-50' : ''
                         }`}
                         placeholder="पूरा नाम दर्ज करें"
-                        readOnly={!!(formData.patientId && formData.patientName)}
+                        readOnly={!!(formData.patientName && searchPhone)}
                       />
-                      {formData.patientId && formData.patientName && (
+                      {formData.patientName && searchPhone && (
                         <p className="text-xs text-green-600 mt-1">
                           ✓ मरीज़ की जानकारी स्वचालित रूप से भरी गई
                         </p>
@@ -874,10 +1045,10 @@ const HealthRecords: React.FC = () => {
                         min="1"
                         max="120"
                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientId && formData.age ? 'bg-green-50' : ''
+                          formData.age && searchPhone ? 'bg-green-50' : ''
                         }`}
                         placeholder="वर्षों में"
-                        readOnly={!!(formData.patientId && formData.age)}
+                        readOnly={!!(formData.age && searchPhone)}
                       />
                     </div>
                     
@@ -891,9 +1062,9 @@ const HealthRecords: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientId && formData.patientName ? 'bg-green-50' : ''
+                          formData.patientName && searchPhone ? 'bg-green-50' : ''
                         }`}
-                        disabled={!!(formData.patientId && formData.patientName)}
+                        disabled={!!(formData.patientName && searchPhone)}
                       >
                         <option value="male">पुरुष</option>
                         <option value="female">महिला</option>
@@ -912,14 +1083,14 @@ const HealthRecords: React.FC = () => {
                         required
                         pattern="[0-9]{10}"
                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientId && formData.phone ? 'bg-green-50' : ''
+                          formData.phone && searchPhone ? 'bg-green-50' : ''
                         }`}
                         placeholder="10 अंकों का नंबर"
-                        readOnly={!!(formData.patientId && formData.phone)}
+                        readOnly={!!(formData.phone && searchPhone)}
                       />
                     </div>
                     
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         पता *
                       </label>
@@ -930,10 +1101,10 @@ const HealthRecords: React.FC = () => {
                         onChange={handleInputChange}
                         required
                         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                          formData.patientId && formData.address ? 'bg-green-50' : ''
+                          formData.address && searchPhone ? 'bg-green-50' : ''
                         }`}
                         placeholder="पूरा पता"
-                        readOnly={!!(formData.patientId && formData.address)}
+                        readOnly={!!(formData.address && searchPhone)}
                       />
                     </div>
                   </div>
@@ -942,22 +1113,59 @@ const HealthRecords: React.FC = () => {
                 {/* Visit Information */}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-4">कैंप की जानकारी</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        कैंप का नाम *
-                      </label>
-                      <input
-                        type="text"
-                        name="camp"
-                        value={formData.camp}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="कैंप का नाम दर्ज करें"
-                      />
+                  
+                  {/* Camp Search Section */}
+                  <div className="mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-2 relative camp-dropdown-container">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          कैंप का नाम *
+                        </label>
+                        <input
+                          type="text"
+                          value={campSearchValue || formData.camp}
+                          onChange={(e) => {
+                            setCampSearchValue(e.target.value);
+                            setFormData(prev => ({ ...prev, camp: e.target.value }));
+                          }}
+                          onClick={handleCampSearch}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent cursor-pointer"
+                          placeholder="कैंप खोजने के लिए क्लिक करें"
+                          readOnly
+                        />
+                        
+                        {/* Camp Dropdown */}
+                        {showCampDropdown && foundCamps.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {foundCamps.map((camp, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleCampSelection(camp)}
+                                className="px-3 py-2 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{camp.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  तारीख: {new Date(camp.date).toLocaleDateString('hi-IN')} • स्थान: {camp.location}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={handleCampSearch}
+                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <Search className="h-4 w-4" />
+                          <span>कैंप खोजें</span>
+                        </button>
+                      </div>
                     </div>
-                    
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         कैंप की तारीख *
@@ -968,8 +1176,16 @@ const HealthRecords: React.FC = () => {
                         value={formData.visitDate}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                          formData.visitDate && campSearchValue ? 'bg-green-50' : ''
+                        }`}
+                        readOnly={!!(formData.visitDate && campSearchValue)}
                       />
+                      {formData.visitDate && campSearchValue && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✓ कैंप की तारीख स्वचालित रूप से भरी गई
+                        </p>
+                      )}
                     </div>
                     
                     <div>
