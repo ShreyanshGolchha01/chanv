@@ -42,6 +42,7 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
   const [selectedFamilyMember, setSelectedFamilyMember] = useState<any>(null);
   const [reportDetails, setReportDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [currentReportIndex, setCurrentReportIndex] = useState(0);
 
   // Remove backend integration - data will be loaded locally  
   useEffect(() => {
@@ -52,6 +53,21 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
   // Use real data if available, fallback to empty structure
   const currentReportData = reportDetails || medicalReportData;
   const sortedFamilyMembers = currentReportData.familyReports || [];
+
+  // When you connect to backend, replace this with actual reports array
+  const reportsArray = [currentReportData]; // This will be replaced with backend data
+
+  const handlePreviousReport = () => {
+    if (currentReportIndex > 0) {
+      setCurrentReportIndex(currentReportIndex - 1);
+    }
+  };
+
+  const handleNextReport = () => {
+    if (currentReportIndex < reportsArray.length - 1) {
+      setCurrentReportIndex(currentReportIndex + 1);
+    }
+  };
 
   const renderFamilyMemberCard = (member: any) => (
     <TouchableOpacity
@@ -262,13 +278,59 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       
-      {/* Camp Info Card */}
+      {/* Camp Info Card with Carousel */}
       <LinearGradient
         colors={COLORS.gradients.card.colors}
         start={COLORS.gradients.card.start}
         end={COLORS.gradients.card.end}
         style={styles.campInfoCard}
       >
+        {/* Carousel Navigation */}
+        <View style={styles.carouselHeader}>
+          <TouchableOpacity 
+            style={[styles.carouselButton, currentReportIndex === 0 && styles.disabledButton]}
+            onPress={handlePreviousReport}
+            disabled={currentReportIndex === 0}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="chevron-back" 
+              size={20} 
+              color={currentReportIndex === 0 ? COLORS.gray[400] : COLORS.primary} 
+            />
+          </TouchableOpacity>
+          
+          <View style={styles.reportIndicator}>
+            <Text style={styles.reportIndicatorText}>
+              {currentReportIndex === 0 ? 'नवीनतम रिपोर्ट' : `${currentReportIndex + 1} महीने पहले`}
+            </Text>
+            <View style={styles.dotsContainer}>
+              {reportsArray.map((_, index: number) => (
+                <View 
+                  key={index}
+                  style={[
+                    styles.dot, 
+                    index === currentReportIndex && styles.activeDot
+                  ]} 
+                />
+              ))}
+            </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.carouselButton, currentReportIndex === reportsArray.length - 1 && styles.disabledButton]}
+            onPress={handleNextReport}
+            disabled={currentReportIndex === reportsArray.length - 1}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="chevron-forward" 
+              size={20} 
+              color={currentReportIndex === reportsArray.length - 1 ? COLORS.gray[400] : COLORS.primary} 
+            />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.campInfoHeader}>
           <LinearGradient
             colors={COLORS.gradients.secondary.colors}
@@ -279,23 +341,24 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
             <FontAwesome5 name="hospital" size={20} color={COLORS.white} />
           </LinearGradient>
           <View style={styles.campInfoDetails}>
-            <Text style={styles.campTitle}>{medicalReportData.campInfo.campType}</Text>
-            <Text style={styles.campDate}>{medicalReportData.campInfo.date}</Text>
+            <Text style={styles.campTitle}>{currentReportData.campInfo.campType}</Text>
+            <Text style={styles.campDate}>{currentReportData.campInfo.date}</Text>
           </View>
+          {/* Remove the isLatest check since we don't have mock data */}
         </View>
         
         <View style={styles.campDetails}>
           <View style={styles.campDetailRow}>
             <Ionicons name="location" size={16} color={COLORS.primary} />
-            <Text style={styles.campDetailText}>{medicalReportData.campInfo.location}</Text>
+            <Text style={styles.campDetailText}>{currentReportData.campInfo.location}</Text>
           </View>
           <View style={styles.campDetailRow}>
             <FontAwesome5 name="user-md" size={14} color={COLORS.healthGreen} />
-            <Text style={styles.campDetailText}>{medicalReportData.campInfo.doctor}</Text>
+            <Text style={styles.campDetailText}>{currentReportData.campInfo.doctor}</Text>
           </View>
           <View style={styles.campDetailRow}>
             <Ionicons name="time" size={16} color={COLORS.accent} />
-            <Text style={styles.campDetailText}>{medicalReportData.campInfo.time}</Text>
+            <Text style={styles.campDetailText}>{currentReportData.campInfo.time}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -685,6 +748,130 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: FONTS.weights.medium,
     marginLeft: SPACING.xs,
+  },
+  previousReportsContainer: {
+    paddingBottom: SPACING.xl,
+  },
+  previousReportsHeader: {
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.sm,
+  },
+  previousReportsTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
+  },
+  previousReportsSubtitle: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  emptyStateCard: {
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    ...SHADOWS.medium,
+    elevation: 6,
+  },
+  emptyStateIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+    ...SHADOWS.small,
+  },
+  emptyStateTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+  },
+  emptyStateMessage: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.lg,
+  },
+  refreshButton: {
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    ...SHADOWS.small,
+  },
+  refreshButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  refreshButtonText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.white,
+    fontWeight: FONTS.weights.medium,
+    marginLeft: SPACING.xs,
+  },
+  carouselHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[200],
+  },
+  carouselButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small,
+  },
+  disabledButton: {
+    backgroundColor: COLORS.gray[50],
+    opacity: 0.5,
+  },
+  reportIndicator: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  reportIndicatorText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.medium,
+    color: COLORS.primary,
+    marginBottom: SPACING.xs,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.gray[300],
+  },
+  activeDot: {
+    backgroundColor: COLORS.primary,
+    width: 12,
+  },
+  latestBadge: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.round,
+    ...SHADOWS.small,
+  },
+  latestBadgeText: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.white,
+    fontWeight: FONTS.weights.bold,
   },
 });
 
