@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import serverUrl from '../services/Server';
 
 interface ProfileScreenProps {
   onBack?: () => void;
@@ -103,8 +104,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
       }
       
       console.log('Fetching family members for user ID:', userId);
-      
-      const response = await fetch(`http://192.168.1.9/chanv/get_family_members.php?userId=${userId}`, {
+
+      const response = await fetch(serverUrl + `get_family_members.php?userId=${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
