@@ -25,7 +25,24 @@ export interface Doctor {
   assignedCamps: string[];
 }
 
-
+export interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  gender: 'male' | 'female' | 'other';
+  email: string;
+  phone: string;
+  password: string;
+  dateOfBirth: string;
+  bloodGroup: string;
+  address: string;
+  lastVisit: string;
+  healthStatus: 'good' | 'fair' | 'poor';
+  familyMembers: number;
+  department: string;
+  hasAbhaId: 'yes' | 'no';
+  hasAyushmanCard: 'yes' | 'no';
+}
 
 
 

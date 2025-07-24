@@ -68,13 +68,17 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ onBack }) => {
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === id
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
+    // TEMPORARILY DISABLED - Original functionality preserved for future updates
+    // setNotifications(prev =>
+    //   prev.map(notification =>
+    //     notification.id === id
+    //       ? { ...notification, isRead: true }
+    //       : notification
+    //   )
+    // );
+    
+    // Temporary "Coming Soon" message
+    Alert.alert('जल्द आ रहा है', 'यह सुविधा जल्द ही उपलब्ध होगी।', [{ text: 'ठीक है' }]);
   };
 
   const markAllAsRead = () => {

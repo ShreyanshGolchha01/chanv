@@ -13,7 +13,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
 import { Ionicons, MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icons';
-import SchemesScreen from './SchemesScreen';
+// COMMENTED OUT - Schemes feature temporarily disabled
+// import SchemesScreen from './SchemesScreen';
 import ProfileScreen from './ProfileScreen';
 import ReportDetailsScreen from './ReportDetailsScreen';
 import NotificationScreen from './NotificationScreen';
@@ -30,7 +31,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState('home');
-  const [showSchemes, setShowSchemes] = useState(false);
+  // COMMENTED OUT - Schemes feature temporarily disabled
+  // const [showSchemes, setShowSchemes] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showReportDetails, setShowReportDetails] = useState(false);
@@ -73,17 +75,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
   };
 
   const renderContent = () => {
+    /* TEMPORARILY DISABLED - Notification feature will be added in future updates
     if (showNotifications) {
       return <NotificationScreen onBack={() => setShowNotifications(false)} />;
     }
+    */
     
     if (showReportDetails) {
       return <ReportDetailsScreen onBack={() => setShowReportDetails(false)} reportData={selectedReport} />;
     }
     
+    /* COMMENTED OUT - Schemes feature temporarily disabled
     if (showSchemes) {
       return <SchemesScreen onBack={() => setShowSchemes(false)} />;
     }
+    */
     
     if (showReports) {
       return <ReportDetailsScreen onBack={() => setShowReports(false)} reportData={null} />;
@@ -136,7 +142,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
               onPress={() => {
                 setActiveTab('reports');
                 setShowReports(true);
-                setShowSchemes(false);
+                // setShowSchemes(false); // Commented out - Schemes feature disabled
                 setShowProfile(false);
                 setShowReportDetails(false);
                 setShowNotifications(false);
@@ -308,6 +314,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
         style={styles.header}
       >
         <View style={styles.headerContent}>
+          {/* Notification screen header disabled - feature temporarily unavailable
           {showNotifications ? (
             // Header for notification screen with back button
             <>
@@ -322,25 +329,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
               <View style={styles.headerSpacer} />
             </>
           ) : (
-            // Normal header layout
+          */}
+            {/* Normal header layout */}
             <>
               <Text style={styles.headerTitle}>
-                {showNotifications ? 'सूचनाएं' :
+                {/* showNotifications ? 'सूचनाएं' : */ // Commented out - feature disabled
                  showReportDetails ? 'विस्तृत रिपोर्ट' : 
                  showReports ? 'रिपोर्ट्स' :
                  showProfile ? 'प्रोफाइल' : 
-                 showSchemes ? 'सरकारी योजनाएं' : 
+                 /* showSchemes ? 'सरकारी योजनाएं' : */ // Commented out - Schemes feature disabled
                  'स्वास्थ्य पोर्टल'}
               </Text>
               <TouchableOpacity 
                 style={styles.notificationButton}
                 onPress={() => {
-                  setShowNotifications(true);
-                  setActiveTab('home');
-                  setShowSchemes(false);
-                  setShowProfile(false);
-                  setShowReports(false);
-                  setShowReportDetails(false);
+                  // TEMPORARILY DISABLED - Notification feature will be added in future updates
+                  // Original functionality preserved below:
+                  // setShowNotifications(true);
+                  // setActiveTab('home');
+                  // setShowProfile(false);
+                  // setShowReports(false);
+                  // setShowReportDetails(false);
+                  
+                  // Temporary "Coming Soon" message
+                  Alert.alert('जल्द आ रहा है', 'सूचना सुविधा जल्द ही उपलब्ध होगी।', [{ text: 'ठीक है' }]);
                 }}
                 activeOpacity={0.7}
               >
@@ -361,21 +373,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
                 </View>
               </TouchableOpacity>
             </>
-          )}
+          {/* )} */}
         </View>
       </LinearGradient>
 
       {/* Dynamic Content */}
       {renderContent()}
 
-      {/* Bottom Navigation - Hide when notification screen is open */}
-      {!showNotifications && (
+      {/* Bottom Navigation - Always show since notification screen is disabled */}
+      {/* {!showNotifications && ( */}
         <View style={styles.bottomNav}>
           <TouchableOpacity 
             style={[styles.navItem, activeTab === 'home' && styles.activeNavItem]}
             onPress={() => {
               setActiveTab('home');
-              setShowSchemes(false);
+              // setShowSchemes(false); // Commented out - Schemes feature disabled
               setShowProfile(false);
               setShowReports(false);
               setShowReportDetails(false);
@@ -391,6 +403,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
             <Text style={[styles.navText, activeTab === 'home' && styles.activeNavText]}>होम</Text>
           </TouchableOpacity>
           
+          {/* COMMENTED OUT - Schemes feature temporarily disabled
           <TouchableOpacity 
             style={[styles.navItem, activeTab === 'scheme' && styles.activeNavItem]}
             onPress={() => {
@@ -410,13 +423,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
             />
             <Text style={[styles.navText, activeTab === 'scheme' && styles.activeNavText]}>योजना</Text>
           </TouchableOpacity>
+          */}
 
           <TouchableOpacity 
             style={[styles.navItem, activeTab === 'reports' && styles.activeNavItem]}
             onPress={() => {
               setActiveTab('reports');
               setShowReports(true);
-              setShowSchemes(false);
+              // setShowSchemes(false); // Commented out - Schemes feature disabled
               setShowProfile(false);
               setShowReportDetails(false);
               setShowNotifications(false);
@@ -436,7 +450,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
             onPress={() => {
               setActiveTab('profile');
               setShowProfile(true);
-              setShowSchemes(false);
+              // setShowSchemes(false); // Commented out - Schemes feature disabled
               setShowReports(false);
               setShowReportDetails(false);
               setShowNotifications(false);
@@ -451,7 +465,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ userName, onLogout }) => {
             <Text style={[styles.navText, activeTab === 'profile' && styles.activeNavText]}>प्रोफाइल</Text>
           </TouchableOpacity>
         </View>
-      )}
+      {/* )} */}
     </SafeAreaView>
   );
 };

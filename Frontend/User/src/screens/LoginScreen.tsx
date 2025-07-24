@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -147,11 +148,15 @@ const handleLogin = async () => {
                 end={COLORS.gradients.card.end}
                 style={styles.logo}
               >
-                <Text style={styles.logoText}>🏥</Text>
+                <Image 
+                  source={require('../../assets/chhanv_logo.png')} 
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </LinearGradient>
             </View>
-            <Text style={styles.appTitle}>सरकारी स्वास्थ्य पोर्टल</Text>
-            <Text style={styles.subtitle}>स्वास्थ्य सेवाओं तक सुरक्षित पहुंच</Text>
+            <Text style={styles.appTitle}>परियोजना छांव</Text>
+            <Text style={styles.subtitle}>सेहत के संगवारी - एक नई दिशा</Text>
           </LinearGradient>
 
           {/* Login Form */}
@@ -239,27 +244,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingTop: (StatusBar.currentHeight || 0) + SPACING.lg,
-    paddingBottom: SPACING.md,
-    borderBottomLeftRadius: BORDER_RADIUS.lg,
-    borderBottomRightRadius: BORDER_RADIUS.lg,
+    paddingTop: (StatusBar.currentHeight || 0) + SPACING.xl,
+    paddingBottom: SPACING.xl,
+    borderBottomLeftRadius: BORDER_RADIUS.xl,
+    borderBottomRightRadius: BORDER_RADIUS.xl,
     backgroundColor: COLORS.primary,
-    ...SHADOWS.medium,
+    ...SHADOWS.large,
+    elevation: 10,
   },
   logoContainer: {
     marginBottom: SPACING.md,
   },
   logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.large,
-    elevation: 8,
+    elevation: 10,
   },
-  logoText: {
-    fontSize: 24,
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   appTitle: {
     fontSize: FONTS.sizes.xl,

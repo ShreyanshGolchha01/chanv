@@ -8,17 +8,17 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/loading.png",
+      "image": "./assets/loading_screen.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/loading.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/loading_screen.png",
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true
     },

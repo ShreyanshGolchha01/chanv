@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import serverUrl from './Server';
+import axios from 'axios';
+import type{ Patient } from '../types/interfaces';
 import { 
   Users, 
   Search, 
@@ -13,33 +16,26 @@ import {
   Eye
 } from 'lucide-react';
 
-interface Patient {
-  id: string;
-  name: string;
-  age: number;
-  gender: 'male' | 'female' | 'other';
-  email: string;
-  phone: string;
-  password: string;
-  dateOfBirth: string;
-  bloodGroup: string;
-  address: string;
-  lastVisit: string;
-  healthStatus: 'good' | 'fair' | 'poor';
-  familyMembers: number;
-  // yaha se changes start hue hai
-  department: string;
-  hasAbhaId: 'yes' | 'no';
-  hasAyushmanCard: 'yes' | 'no';
-  // niche yaha tak hue hai
-}
+
+
 
 const PatientsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [dateOfBirthInput, setDateOfBirthInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedFilterField, setSelectedFilterField] = useState('');
+  const [selectedFilterValue, setSelectedFilterValue] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
+
+
+
   const [newPatient, setNewPatient] = useState({
+    id:'0',
     email: '',
     phone: '',
     password: '',
@@ -54,6 +50,91 @@ const PatientsManagement: React.FC = () => {
     hasAbhaId: 'no' as 'yes' | 'no',
     hasAyushmanCard: 'no' as 'yes' | 'no'
   });
+
+ const resetForm = () => {
+  setNewPatient({
+     id:'0',
+    email: '',
+    phone: '',
+    password: '',
+    dateOfBirth: '',
+    name: '',
+    age: '',
+    gender: 'male' as 'male' | 'female' | 'other',
+    bloodGroup: '',
+    address: '',
+    familyMembers: '',
+    department: '',
+    hasAbhaId: 'no' as 'yes' | 'no',
+    hasAyushmanCard: 'no' as 'yes' | 'no'
+  });
+};
+//========================
+useEffect(() => {
+  const fetchPatients = async () => {
+    try {
+      const endpoint = `${serverUrl}show_Patients.php`;
+      const response = await axios.post(endpoint, {});
+      const data = response.data;
+
+      const loadedPatients: Patient[] = data.posts.map((post: any) => ({
+      id: post.id,
+      email: post.email,
+      phone: post.phone,
+      password: post.password,
+      dateOfBirth: post.dateOfBirth,
+      name: post.name,
+      age: parseInt(post.age),
+      gender: post.gender,
+      bloodGroup: post.bloodGroup,
+      address: post.address,
+      lastVisit: post.date,
+      healthStatus: post.healthStatus,
+      familyMembers: parseInt(post.familyMembers) || 0,
+      department: post.department,
+      hasAbhaId: post.hasAbhaId,
+      hasAyushmanCard: post.hasAyushmanCard
+      }));
+
+      setPatients(loadedPatients);
+    } catch (error) {
+      console.error('Error loading Patient:', error);
+    }
+  };
+
+  fetchPatients(); // ✅ Make sure to call the async function here
+}, []);
+
+
+const openEditModal = (patient: Patient) => {
+  setEditingPatient(patient);
+  setNewPatient({
+      id: patient.id,
+      email: patient.email,
+      phone: patient.phone,
+      password: patient.password,
+      dateOfBirth: patient.dateOfBirth,
+      name: patient.name,
+      age: ""+patient.age,
+      gender: patient.gender,
+      bloodGroup: patient.bloodGroup,
+      address: patient.address,
+      
+
+      familyMembers: ""+patient.familyMembers,
+      department: patient.department,
+      hasAbhaId: patient.hasAbhaId,
+      hasAyushmanCard: patient.hasAyushmanCard
+  });
+  setShowAddPatient(true);
+};
+const openDetailsModal = (patient: Patient) => {
+  setSelectedPatient(patient);
+  setShowPatientDetailsModal(true);
+};
+
+//============================
+
 
   // Function to auto-generate password
   const generatePassword = (name: string, phone: string) => {
@@ -85,28 +166,41 @@ const PatientsManagement: React.FC = () => {
   // Empty patients data - Connect to your backend
   const [patients, setPatients] = useState<Patient[]>([]);
 
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         patient.phone.includes(searchTerm) ||
-                         patient.address.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = selectedFilter === 'all' || 
-                         (selectedFilter === 'good' && patient.healthStatus === 'good') ||
-                         (selectedFilter === 'fair' && patient.healthStatus === 'fair') ||
-                         (selectedFilter === 'poor' && patient.healthStatus === 'poor') ||
-                         (selectedFilter === 'male' && patient.gender === 'male') ||
-                         (selectedFilter === 'female' && patient.gender === 'female') ||
-                         (selectedFilter === 'recent' && (() => {
-                           const lastVisit = new Date(patient.lastVisit);
-                           const today = new Date();
-                           const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
-                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                           return diffDays <= 7;
-                         })());
-    
-    return matchesSearch && matchesFilter;
-  });
-  
+const filteredPatients = patients.filter((patient) => {
+  const searchTermLower = searchTerm.toLowerCase();
+
+  const matchesSearch =
+    patient.name.toLowerCase().includes(searchTermLower) ||
+    patient.phone.includes(searchTerm) ||
+    patient.address.toLowerCase().includes(searchTermLower);
+
+  let matchesFilter = true;
+
+  if (!selectedFilterField || selectedFilterField === '') {
+    matchesFilter = true; // no filter selected
+  } else if (selectedFilterField === 'recent') {
+    const lastVisit = new Date(patient.lastVisit);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    matchesFilter = diffDays <= 7;
+  } else if (selectedFilterField === 'gender') {
+    matchesFilter = patient.gender === selectedFilterValue;
+  } else if (selectedFilterField === 'healthStatus') {
+    matchesFilter = patient.healthStatus === selectedFilterValue;
+  } else if (selectedFilterField === 'hasAbhaId') {
+    matchesFilter = patient.hasAbhaId === selectedFilterValue;
+  } else if (selectedFilterField === 'hasAyushmanCard') {
+    matchesFilter = patient.hasAyushmanCard === selectedFilterValue;
+  } else if (selectedFilterField === 'bloodGroup') {
+    matchesFilter = patient.bloodGroup === selectedFilterValue;
+  } else {
+    matchesFilter = true; // fallback
+  }
+
+  return matchesSearch && matchesFilter;
+});
+
 
   const getHealthStatusColor = (status: string) => {
     switch (status) {
@@ -134,7 +228,13 @@ const PatientsManagement: React.FC = () => {
     }
   };
 
-  const handleAddPatient = (e: React.FormEvent) => {
+  
+
+
+  
+  // Function to handle adding a new patient
+
+  const handleAddPatient = async(e: React.FormEvent) => {
     e.preventDefault();
     
     // yaha se changes start hue hai
@@ -160,9 +260,11 @@ const PatientsManagement: React.FC = () => {
     }
     // niche yaha tak hue hai
 
-    // Create new patient object
-    const patient: Patient = {
-      id: (patients.length + 1).toString(),
+//===============================================
+const endpoint = `${serverUrl}add_patient.php`;
+
+  const response = await axios.post(endpoint, {
+     id: '0',
       email: newPatient.email,
       phone: newPatient.phone,
       password: newPatient.password,
@@ -172,39 +274,134 @@ const PatientsManagement: React.FC = () => {
       gender: newPatient.gender,
       bloodGroup: newPatient.bloodGroup,
       address: newPatient.address,
-      lastVisit: new Date().toISOString().split('T')[0],
-      healthStatus: 'fair',
+      
+
       familyMembers: parseInt(newPatient.familyMembers) || 0,
       department: newPatient.department,
       hasAbhaId: newPatient.hasAbhaId,
       hasAyushmanCard: newPatient.hasAyushmanCard
-    };
+  });
+
+
+  
+  const data = response.data;
+ 
+
+  const patient: Patient[] = data.posts.map((post: any) => ({
+     id: post.id,
+      email: post.email,
+      phone: post.phone,
+      password: post.password,
+      dateOfBirth: post.dateOfBirth,
+      name: post.name,
+      age: parseInt(post.age),
+      gender: post.gender,
+      bloodGroup: post.bloodGroup,
+      address: post.address,
+      lastVisit: post.date,
+      healthStatus: post.healthStatus,
+      familyMembers: parseInt(post.familyMembers) || 0,
+      department: post.department,
+      hasAbhaId: post.hasAbhaId,
+      hasAyushmanCard: post.hasAyushmanCard
+  }));
+
+//==================================================
+
+
+
+
 
     // Add patient to list
-    setPatients([...patients, patient]);
+    setPatients(patient);
+
     
-    // Reset form
-    setNewPatient({
-      email: '',
-      phone: '',
-      password: '',
-      dateOfBirth: '',
-      name: '',
-      age: '',
-      gender: 'male',
-      bloodGroup: '',
-      address: '',
-      familyMembers: '',
-      department: '',
-      hasAbhaId: 'no',
-      hasAyushmanCard: 'no'
-    });
     
     // Close modal
     setShowAddPatient(false);
-    
+      setEditingPatient(null);
     alert('मरीज़ सफलतापूर्वक जोड़ा गया!');
   };
+  //=====================================
+
+
+  // Function to handle  Updating an existing patient
+
+
+  const handleEditPatient = async () => {
+  if (!editingPatient) return;
+
+  setIsLoading(true);
+
+  // ✅ Match your backend PHP column names here
+  const payload = {
+  id: editingPatient.id,
+  name: newPatient.name,
+  email: newPatient.email,
+  phone: newPatient.phone,
+  password: newPatient.password,
+  dateOfBirth: newPatient.dateOfBirth,
+  age: parseInt(newPatient.age),
+  gender: newPatient.gender,
+  bloodGroup: newPatient.bloodGroup,
+  department: newPatient.department,
+  address: newPatient.address,
+  familyMembers: parseInt(newPatient.familyMembers),
+  hasAbhaId: newPatient.hasAbhaId,
+  hasAyushmanCard: newPatient.hasAyushmanCard,
+  updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
+};
+
+
+  try {
+    const endpoint = `${serverUrl}update_patient.php`;
+    const response = await axios.post(endpoint, payload);
+    const data = response.data;
+
+    if (!data.posts) {
+      throw new Error("Invalid response from server");
+    }
+
+    const updatedPatients: Patient[] = data.posts.map((post: any) => ({
+      id: post.id,
+      name: post.name, // `fullname` in DB
+      email: post.email,
+      phone: post.phone, // `phoneNumber` in DB
+      password: post.password,
+      dateOfBirth: post.dateOfBirth,
+      age: parseInt(post.age),
+      gender: post.gender,
+      bloodGroup: post.bloodGroup,
+      department: post.department,
+      address: post.address,
+      familyMembers: parseInt(post.familyMembers),
+      hasAbhaId: post.hasAbhaId,
+      hasAyushmanCard: post.hasAyushmanCard,
+      // lastVisit: '', // if you want to support this in future
+      // healthStatus: 'good' // default value (not in DB)
+    }));
+
+    setPatients(updatedPatients);
+    setEditingPatient(null);
+    setShowAddPatient(false);
+    resetForm();
+    alert('मरीज़ की जानकारी सफलतापूर्वक अपडेट की गई!');
+  } catch (error) {
+    console.error("❌ Error updating patient:", error);
+    alert("मरीज़ अपडेट करते समय त्रुटि हुई।");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  //=====================================
+
+
+
+
+
+
+
 
   return (
     <div className="space-y-6">
@@ -310,48 +507,99 @@ const PatientsManagement: React.FC = () => {
 
           {/* Filter Dropdown */}
           <div className="flex items-center space-x-4">
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-            >
-              <option value="all">सभी मरीज़ ({patients.length})</option>
-              {/* <option value="good">स्वस्थ मरीज़ ({patients.filter(p => p.healthStatus === 'good').length})</option> */}
-              {/* <option value="fair">सामान्य स्वास्थ्य ({patients.filter(p => p.healthStatus === 'fair').length})</option> */}
-              {/* <option value="poor">खराब स्वास्थ्य ({patients.filter(p => p.healthStatus === 'poor').length})</option> */}
-              <option value="male">पुरुष मरीज़ ({patients.filter(p => p.gender === 'male').length})</option>
-              <option value="female">महिला मरीज़ ({patients.filter(p => p.gender === 'female').length})</option>
-              <option value="recent">हाल के मरीज़ ({patients.filter(p => {
-                const lastVisit = new Date(p.lastVisit);
-                const today = new Date();
-                const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7;
-              }).length})</option>
-            </select>
+  {/* Field Selection */}
+  <select
+    value={selectedFilterField}
+    onChange={(e) => {
+      setSelectedFilterField(e.target.value);
+      setSelectedFilterValue(''); // Reset attribute when field changes
+    }}
+    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+  >
+    <option value="">फ़िल्टर चुनें</option>
+    <option value="gender">लिंग</option>
+    <option value="healthStatus">स्वास्थ्य स्थिति</option>
+    <option value="hasAbhaId">ABHA ID</option>
+    <option value="hasAyushmanCard">आयुष्मान कार्ड</option>
+    <option value="bloodGroup">रक्त समूह</option>
+    <option value="recent">हाल के मरीज़</option>
+  </select>
 
-            {/* Clear Filters */}
-            {(searchTerm || selectedFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedFilter('all');
-                }}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                साफ़ करें
-              </button>
-            )}
+  {/* Attribute Selection */}
+  {selectedFilterField && selectedFilterField !== 'recent' && (
+    <select
+      value={selectedFilterValue}
+      onChange={(e) => setSelectedFilterValue(e.target.value)}
+      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+    >
+      <option value="">-- चयन करें --</option>
+      {selectedFilterField === 'gender' && (
+        <>
+          <option value="male">पुरुष</option>
+          <option value="female">महिला</option>
+          <option value="other">अन्य</option>
+        </>
+      )}
+      {selectedFilterField === 'healthStatus' && (
+        <>
+          <option value="good">स्वस्थ</option>
+          <option value="fair">सामान्य</option>
+          <option value="poor">अस्वस्थ</option>
+        </>
+      )}
+      {selectedFilterField === 'hasAbhaId' && (
+        <>
+          <option value="yes">हां</option>
+          <option value="no">नहीं</option>
+        </>
+      )}
+      {selectedFilterField === 'hasAyushmanCard' && (
+        <>
+          <option value="yes">हां</option>
+          <option value="no">नहीं</option>
+        </>
+      )}
+      {selectedFilterField === 'bloodGroup' &&
+        ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+          <option key={bg} value={bg}>
+            {bg}
+          </option>
+        ))}
+    </select>
+  )}
 
-            {/* Add Patient Button */}
-            <button
-              onClick={() => setShowAddPatient(true)}
-              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>नया मरीज़ जोड़ें</span>
-            </button>
-          </div>
+  {selectedFilterField === 'recent' && (
+    <span className="text-sm text-gray-700">पिछले 7 दिनों के मरीज़</span>
+  )}
+
+  {/* Clear Filters */}
+  {(searchTerm || selectedFilterField || selectedFilterValue) && (
+    <button
+      onClick={() => {
+        setSearchTerm('');
+        setSelectedFilterField('');
+        setSelectedFilterValue('');
+      }}
+      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      साफ़ करें
+    </button>
+  )}
+
+  {/* Add Patient Button */}
+  <button
+    onClick={() => {
+      setEditingPatient(null);
+      setShowAddPatient(true);
+    }}
+    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+  >
+    <Plus className="h-4 w-4" />
+    <span>नया मरीज़ जोड़ें</span>
+  </button>
+</div>
+
+
         </div>
       </div>
 
@@ -389,58 +637,147 @@ const PatientsManagement: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center space-x-6 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600">अंतिम जांच:</span>
-                      <span className="font-medium">
-                        {new Date(patient.lastVisit).toLocaleDateString('hi-IN')}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-gray-600">स्वास्थ्य स्थिति:</span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getHealthStatusColor(patient.healthStatus)}`}>
-                        {getHealthStatusText(patient.healthStatus)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <UserPlus className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">{patient.familyMembers} पारिवारिक सदस्य</span>
-                    </div>
+  <div className="flex items-center space-x-2">
+    <UserPlus className="h-4 w-4 text-gray-400" />
+    <span className="text-gray-600">{patient.familyMembers} पारिवारिक सदस्य</span>
+  </div>
 
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-1">
-                        <span className="text-gray-600">ABHA:</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${patient.hasAbhaId === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {patient.hasAbhaId === 'yes' ? 'हाँ' : 'नहीं'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span className="text-gray-600">आयुष्मान:</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${patient.hasAyushmanCard === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {patient.hasAyushmanCard === 'yes' ? 'हाँ' : 'नहीं'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+  <div className="flex items-center space-x-4">
+    <div className="flex items-center space-x-1">
+      <span className="text-gray-600">ABHA:</span>
+      <span className={`px-2 py-1 text-xs font-medium rounded ${patient.hasAbhaId === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        {patient.hasAbhaId === 'yes' ? 'हाँ' : 'नहीं'}
+      </span>
+    </div>
+    <div className="flex items-center space-x-1">
+      <span className="text-gray-600">आयुष्मान:</span>
+      <span className={`px-2 py-1 text-xs font-medium rounded ${patient.hasAyushmanCard === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        {patient.hasAyushmanCard === 'yes' ? 'हाँ' : 'नहीं'}
+      </span>
+    </div>
+  </div>
+</div>
+
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => navigate(`/doctor/health-records?patient=${patient.id}`)}
-                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="स्वास्थ्य रिकॉर्ड देखें"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => alert('संपादन सुविधा जल्द आ रही है')}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    title="संपादित करें"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                </div>
+  <button
+  onClick={() => openDetailsModal(patient)}
+  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+  title="स्वास्थ्य रिकॉर्ड देखें"
+  type="button"
+>
+  <Eye className="h-4 w-4" />
+</button>
+
+  <button
+    onClick={() => openEditModal(patient)}
+    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+    title="संपादित करें"
+    type="button"
+  >
+    <Edit className="h-4 w-4" />
+  </button>
+{showPatientDetailsModal && selectedPatient && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 transition-all duration-300 ease-in-out">
+    <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-3xl p-8 border border-gray-200 animate-fade-in-up">
+      
+      {/* Close Button */}
+      <button
+        onClick={() => setShowPatientDetailsModal(false)}
+        className="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-2xl"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+
+      {/* Header */}
+      <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">
+        👤 मरीज की जानकारी
+      </h2>
+
+      {/* Table Layout */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-auto border border-gray-300 text-sm text-left text-gray-800">
+          <tbody>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">नाम:</td>
+              <td className="p-2">{selectedPatient.name}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">ईमेल:</td>
+              <td className="p-2">{selectedPatient.email}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">फोन नंबर:</td>
+              <td className="p-2">{selectedPatient.phone}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">लिंग:</td>
+              <td className="p-2">
+                {selectedPatient.gender === "male"
+                  ? "पुरुष"
+                  : selectedPatient.gender === "female"
+                  ? "महिला"
+                  : "अन्य"}
+              </td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">जन्म तिथि:</td>
+              <td className="p-2">{selectedPatient.dateOfBirth}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">आयु:</td>
+              <td className="p-2">{selectedPatient.age}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">पता:</td>
+              <td className="p-2">{selectedPatient.address}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">पारिवारिक सदस्य:</td>
+              <td className="p-2">{selectedPatient.familyMembers}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">विभाग:</td>
+              <td className="p-2">{selectedPatient.department}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">ABHA आईडी:</td>
+              <td className="p-2">{selectedPatient.hasAbhaId === "yes" ? "हाँ" : "नहीं"}</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-2 font-semibold">आयुष्मान कार्ड:</td>
+              <td className="p-2">{selectedPatient.hasAyushmanCard === "yes" ? "हाँ" : "नहीं"}</td>
+            </tr>
+            <tr>
+              <td className="p-2 font-semibold">रक्त समूह:</td>
+              <td className="p-2">{selectedPatient.bloodGroup}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center">
+        <button
+          onClick={() => setShowPatientDetailsModal(false)}
+          className="px-6 py-2 bg-green-600 text-white text-sm rounded-full hover:bg-green-700 transition"
+        >
+          बंद करें
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+</div>
+
+
+
+
+
+
+
               </div>
             </div>
           ))}
@@ -464,7 +801,11 @@ const PatientsManagement: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">नया मरीज़ जोड़ें</h3>
               <button
-                onClick={() => setShowAddPatient(false)}
+                onClick={() => {
+                  resetForm();
+                  setShowAddPatient(false)
+                setEditingPatient(null)
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
@@ -559,47 +900,12 @@ const PatientsManagement: React.FC = () => {
                   जन्म तिथि * (DD/MM/YYYY)
                 </label>
                 <input
-                  type="text"
-                  value={newPatient.dateOfBirth ? formatDateToDDMMYYYY(newPatient.dateOfBirth) : ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow only numbers and /
-                    const cleanValue = value.replace(/[^0-9/]/g, '');
-                    
-                    // Auto-format as DD/MM/YYYY
-                    let formattedValue = cleanValue;
-                    if (cleanValue.length === 2 && !cleanValue.includes('/')) {
-                      formattedValue = cleanValue + '/';
-                    } else if (cleanValue.length === 5 && cleanValue.split('/').length === 2) {
-                      formattedValue = cleanValue + '/';
-                    }
-                    
-                    // If complete date, convert to YYYY-MM-DD for storage
-                    if (formattedValue.length === 10) {
-                      const dateValue = parseDDMMYYYYToDate(formattedValue);
-                      setNewPatient({...newPatient, dateOfBirth: dateValue});
-                      
-                      // Auto calculate age from date of birth
-                      if (dateValue) {
-                        const birthDate = new Date(dateValue);
-                        const today = new Date();
-                        let age = today.getFullYear() - birthDate.getFullYear();
-                        const monthDiff = today.getMonth() - birthDate.getMonth();
-                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                          age--;
-                        }
-                        setNewPatient(prev => ({...prev, dateOfBirth: dateValue, age: age.toString()}));
-                      }
-                    } else {
-                      // For incomplete dates, just store the formatted value temporarily
-                      setNewPatient(prev => ({...prev, dateOfBirth: ''}));
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="DD/MM/YYYY"
-                  maxLength={10}
-                  required
-                />
+  type="date"
+  value={newPatient.dateOfBirth}
+  onChange={(e) => setNewPatient({...newPatient, dateOfBirth: e.target.value})}
+     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50"
+/>
+
               </div>
 
               {/* Age (Auto-calculated) */}
@@ -608,11 +914,12 @@ const PatientsManagement: React.FC = () => {
                   उम्र (स्वचालित गणना)
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   value={newPatient.age}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                  placeholder="जन्म तिथि से गणना होगी"
-                  readOnly
+                    onChange={(e) => setNewPatient({...newPatient, age: e.target.value})}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50"
+                    placeholder="जन्म तिथि से गणना होगी"
+                  
                 />
               </div>
 
@@ -762,13 +1069,19 @@ const PatientsManagement: React.FC = () => {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddPatient(false)}
+                  onClick={() =>{ 
+                  setShowAddPatient(false)
+                
+                    setEditingPatient(null);
+                   
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   रद्द करें
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={editingPatient ? handleEditPatient : handleAddPatient}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   मरीज़ जोड़ें

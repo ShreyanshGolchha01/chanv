@@ -12,6 +12,8 @@ const Doctors: React.FC = () => {
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [deletingDoctor, setDeletingDoctor] = useState<Doctor | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showQualificationDropdown, setShowQualificationDropdown] = useState(false);
+
 
   const [formData, setFormData] = useState({
     name: '',
@@ -27,98 +29,208 @@ const Doctors: React.FC = () => {
   });
 
   //=================use effect to load data
-  useEffect(() => {
+useEffect(() => {
   const fetchDoctors = async () => {
     try {
       const endpoint = `${serverUrl}show_doctor.php`;
       const response = await axios.post(endpoint, {});
       const data = response.data;
-      
 
-    if (data.posts && Array.isArray(data.posts)) {
-      const newDoctor: Doctor[] = data.posts.map((post: any) => ({
-       id: post.id,
-      name: post.name,
-      hospitalType: post.hospitalType,
-      hospitalName: post.hospitalName,
-      specialty: post.specialty,
-      phone: post.phone,
-      email: post.email,
-      experience: Number(post.experience) || 0,
-      qualification: Array.isArray(post.qualification) ? post.qualification : [post.qualification],  //yaha change kiya hu
-      assignedCamps: post.assignedCamps,
+      const loadedDoctors: Doctor[] = data.posts.map((doc: any) => ({
+        id: doc.id,
+        name: doc.name,
+        specialty: doc.specialty,
+        phone: doc.phone,
+        email: doc.email,
+        avatar: doc.avatar || '', // optional
+        experience: Number(doc.experience),
+        qualification: doc.qualification
+          ? doc.qualification.split(',').map((q: string) => q.trim())
+          : [],
+        assignedCamps: doc.assignedCamps
+          ? doc.assignedCamps.split(',').map((c: string) => c.trim())
+          : []
       }));
-      setDoctors([...doctors, ...newDoctor]);
-    }
 
-
-   
+      setDoctors(loadedDoctors);
     } catch (error) {
-      console.error("Error fetching doctors:", error);
+      console.error('Error loading doctors:', error);
     }
   };
 
-  fetchDoctors();
+  fetchDoctors(); // ✅ Make sure to call the async function here
 }, []);
+
 
 //////end of use effect
 
+//==============validation function
+const validateDoctorForm = () => {
+  const nameRegex = /^[a-zA-Z\s\u0900-\u097F]+$/; // Includes Hindi/Devanagari
+  const phoneRegex = /^[0-9]{10}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleAddDoctor = async () => {
-  const newDoctor: Doctor = {
-    id: '0',
-    name: formData.name,
-    hospitalType: formData.hospitalType,
-    hospitalName: formData.hospitalName,
-    specialty: formData.specialty,
-    phone: formData.phone,
-    email: formData.email,
-    password: formData.password,
-    experience: Number(formData.experience) || 0,
-    qualification: formData.qualification,
-    assignedCamps: formData.assignedCamps,
-  };
+  if (!formData.name.trim() || !nameRegex.test(formData.name)) {
+    alert("कृपया मान्य नाम दर्ज करें (केवल अक्षर)।");
+    return false;
+  }
 
-  // Add doctor to local state
-  setDoctors([...doctors, newDoctor]);
+  if (!formData.specialty.trim()) {
+    alert("कृपया विशेषज्ञता चुनें।");
+    return false;
+  }
 
-  // Add doctor to DB
+  if (!formData.phone.trim() || !phoneRegex.test(formData.phone)) {
+    alert("कृपया 10 अंकों का मान्य फ़ोन नंबर दर्ज करें।");
+    return false;
+  }
+
+  if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+    alert("कृपया मान्य ईमेल पता दर्ज करें।");
+    return false;
+  }
+
+  if (!editingDoctor && (!formData.password.trim() || formData.password.length < 6)) {
+    alert("पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।");
+    return false;
+  }
+
+  if (
+    formData.experience === "" ||
+    isNaN(Number(formData.experience)) ||
+    Number(formData.experience) <= 0
+  ) {
+    alert("कृपया अनुभव के लिए एक मान्य संख्या (> 0) दर्ज करें।");
+    return false;
+  }
+
+  if (!formData.qualification || formData.qualification.length === 0) {
+    alert("कृपया कम से कम एक योग्यता चुनें।");
+    return false;
+  }
+
+  return true;
+};
+
+//=================
+
+
+const handleAddDoctor = async () => {
+  // Frontend Validation
+  const nameRegex = /^[a-zA-Z\s]+$/;
+  const phoneRegex = /^[0-9]{10}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!formData.name.trim() || !nameRegex.test(formData.name)) {
+    alert('Please enter a valid name (letters only).');
+    return;
+  }
+
+  if (!formData.specialty.trim()) {
+    alert('Specialty is required.');
+    return;
+  }
+
+  if (!formData.phone.trim() || !phoneRegex.test(formData.phone)) {
+    alert('Please enter a valid 10-digit phone number.');
+    return;
+  }
+
+  if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+
+  if (!formData.password.trim() || formData.password.length < 6) {
+    alert('Password must be at least 6 characters long.');
+    return;
+  }
+
+  if (isNaN(Number(formData.experience)) || Number(formData.experience) <= 0) {
+    alert('Experience must be 1 or more years.');
+    return;
+  }
+
+  if (!formData.qualification || formData.qualification.length === 0) {
+    alert('Please select at least one qualification.');
+    return;
+  }
+
+  if (
+    formData.assignedCamps &&
+    Array.isArray(formData.assignedCamps) &&
+    formData.assignedCamps.some((camp) => !camp.trim())
+  ) {
+    alert('Assigned camps contain empty values.');
+    return;
+  }
+
+  // Optional: Validate hospitalType and hospitalName if provided
+  if (formData.hospitalType && !formData.hospitalType.trim()) {
+    alert('Hospital type cannot be just spaces.');
+    return;
+  }
+
+  if (formData.hospitalName && !formData.hospitalName.trim()) {
+    alert('Hospital name cannot be just spaces.');
+    return;
+  }
+
   const endpoint = `${serverUrl}add_doctor.php`;
+
   try {
     const response = await axios.post(endpoint, {
       id: '0',
-      name: formData.name,
-      hospitalType: formData.hospitalType,
-      hospitalName: formData.hospitalName,
-      specialty: formData.specialty,
-      phone: formData.phone,
-      email: formData.email,
-      password: formData.password,
-      experience: Number(formData.experience) || 0,
-      qualification: formData.qualification.join(','), // Convert array to comma-separated string for API
-      assignedCamps: formData.assignedCamps,
+      name: formData.name.trim(),
+      hospitalType: formData.hospitalType.trim(),
+      hospitalName: formData.hospitalName.trim(),
+      specialty: formData.specialty.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      password: formData.password.trim(),
+      experience: Number(formData.experience),
+      qualification: formData.qualification.join(','),
+      assignedCamps: formData.assignedCamps.join(','),
     });
 
     alert('Doctor has been added!!');
 
-    // If response contains new camps, handle them separately
     const data = response.data;
+
     if (data.posts && Array.isArray(data.posts)) {
-      const newDoctor: Doctor[] = data.posts.map((post: any) => ({
-       id: post.id,
-      name: post.name,
-      specialty: post.specialty,
-      phone: post.phone,
-      email: post.email,
-      password: formData.password,
-      experience: parseInt(post.experience, 10),
-      qualification: Array.isArray(post.qualification) 
-        ? post.qualification 
-        : (typeof post.qualification === 'string' ? post.qualification.split(',') : []),
-      assignedCamps: post.assignedCamps,
-      }));    // Convert the response to your Doctor[] shape
-      setDoctors([...doctors, ...newDoctor]);
+      const filteredDoctors = data.posts
+        .filter((post: any) =>
+          post.name &&
+          (post.specialty || post.specialization) &&
+          (post.phone || post.phoneNo) &&
+          post.email &&
+          parseInt(post.experience || '0', 10) > 0
+        )
+        .map((post: any) => ({
+          id: post.id,
+          name: post.name,
+          hospitalType: post.hospitalType ?? '',
+          hospitalName: post.hospitalName ?? '',
+          specialty: post.specialty || post.specialization,
+          phone: post.phone || post.phoneNo,
+          email: post.email,
+          password: formData.password,
+          experience: parseInt(post.experience || '0', 10),
+          qualification: Array.isArray(post.qualification)
+            ? post.qualification
+            : (typeof post.qualification === 'string'
+              ? post.qualification.split(',').map((q: string) => q.trim())
+              : []),
+          assignedCamps: Array.isArray(post.assignedCamps)
+            ? post.assignedCamps
+            : (typeof post.assignedCamps === 'string'
+              ? post.assignedCamps.split(',').map((c: string) => c.trim())
+              : []),
+        }));
+
+      setDoctors(filteredDoctors);
     }
+
   } catch (error) {
     console.error('Error adding doctor:', error);
     alert('Failed to add doctor.');
@@ -129,58 +241,74 @@ const Doctors: React.FC = () => {
 };
 
 
+
   const handleEditDoctor = async () => {
   if (!editingDoctor) return;
 
-  // 1. Hit your PHP endpoint
   const endpoint = `${serverUrl}update_doctor.php`;
 
-  const response = await axios.post(endpoint, {
-    id: editingDoctor.id,                   // or editingDoctor.id
-    name: formData.name,
-    hospitalType: formData.hospitalType,
-    hospitalName: formData.hospitalName,
-    specialty: formData.specialty,
-    phone: formData.phone,
-    email: formData.email,
-    password: formData.password,
-    experience: parseInt(formData.experience, 10),
-    qualification: formData.qualification.join(','), // Convert array to comma-separated string for API
-    assignedCamps: formData.assignedCamps,
-    status: 'active',                  // tweak if you store statuses
-  });
+  try {
+    const response = await axios.post(endpoint, {
+      id: editingDoctor.id,
+      name: formData.name,
+      hospitalType: formData.hospitalType,
+      hospitalName: formData.hospitalName,
+      specialty: formData.specialty,
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      experience: parseInt(formData.experience, 10),
+      qualification: formData.qualification.join(','),
+      assignedCamps: formData.assignedCamps.join(','),  // ✅ convert to comma-separated string
+      status: 'active',
+    });
 
-  alert('Doctor details have been updated!!');
+    alert('Doctor details have been updated!!');
 
-  // 2. Convert the response to your Doctor[] shape
-  const data = response.data;
-  const newDoctors: Doctor[] = data.posts.map((post: any) => ({
-    id: post.id,
-    name: post.name,
-    hospitalType: post.hospitalType,
-    hospitalName: post.hospitalName,
-    specialty: post.specialty,
-    phone: post.phone,
-    email: post.email,
-    password: formData.password,
-    experience: parseInt(post.experience, 10),
-    qualification: Array.isArray(post.qualification) 
-      ? post.qualification 
-      : (typeof post.qualification === 'string' ? post.qualification.split(',') : []),
-    assignedCamps: post.assignedCamps,  
-    status: post.status ?? 'active',
-  }));
+    const data = response.data;
 
-  // 3. Update local state (replace the edited doctor, then append any new ones)
-  setDoctors([
-    ...doctors.filter(d => d.id !== editingDoctor.id),
-    ...newDoctors,
-  ]);
+    if (data.posts && Array.isArray(data.posts)) {
+      const updatedDoctors: Doctor[] = data.posts
+        .filter((post: any) =>
+          post.name && post.specialization && post.phoneNo && post.email && parseInt(post.experience) > 0
+        )
+        .map((post: any) => ({
+          id: post.id,
+          name: post.name,
+          hospitalType: post.hospitalType ?? '',
+          hospitalName: post.hospitalName ?? '',
+          specialty: post.specialty || post.specialization,
+          phone: post.phone || post.phoneNo,
+          email: post.email,
+          password: formData.password, // optional
+          experience: parseInt(post.experience, 10),
+          qualification: Array.isArray(post.qualification)
+            ? post.qualification
+            : (typeof post.qualification === 'string' ? post.qualification.split(',') : []),
+          assignedCamps: Array.isArray(post.assignedCamps)
+            ? post.assignedCamps
+            : (typeof post.assignedCamps === 'string' ? post.assignedCamps.split(',') : []),
+          status: post.status ?? 'active',
+        }));
 
-  // 4. Reset UI state
-  setEditingDoctor(null);
-  resetForm();
+      // Replace existing edited doctor and update state
+      setDoctors([
+        ...doctors.filter((d) => d.id !== editingDoctor.id),
+        ...updatedDoctors,
+      ]);
+    }
+
+    // Close modal and reset
+    setEditingDoctor(null);
+    setShowAddModal(false); // ✅ Hide modal after edit
+    resetForm();
+
+  } catch (error) {
+    console.error('Error updating doctor:', error);
+    alert('Failed to update doctor.');
+  }
 };
+
 
 
   const handleDeleteDoctor = async () => {
@@ -315,20 +443,7 @@ const Doctors: React.FC = () => {
       sortable: false,
       render: () => (
         <div className="space-y-1">
-          {/* {value.slice(0, 2).map(campId => {
-            const camp = getCampById(campId);
-            return camp ? (
-              <div key={campId} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                {camp.location}
-              </div>
-            ) : null;
-          })}
-          {value.length > 2 && (
-            <p className="text-xs text-gray-500">+{value.length - 2} और</p>
-          )}
-          {value.length === 0 && (
-            <span className="text-xs text-gray-400">नियुक्त नहीं</span>
-          )} */}
+
         </div>
       ),
     },
@@ -373,19 +488,19 @@ const Doctors: React.FC = () => {
 ];
 // Qualifications add kiya hu ----------
 const qualifications = [
-  'MBBS - Bachelor of Medicine and Bachelor of Surgery',
-  'MD - Doctor of Medicine',
-  'MS - Master of Surgery',
-  'BDS - Bachelor of Dental Surgery',
-  'MDS - Master of Dental Surgery',
-  'BAMS - Bachelor of Ayurvedic Medicine and Surgery',
-  'BHMS - Bachelor of Homeopathic Medicine and Surgery',
-  'BUMS - Bachelor of Unani Medicine and Surgery',
-  'BNYS - Bachelor of Naturopathy and Yogic Sciences',
-  'DNB - Diplomate of National Board',
-  'PhD - Doctorate in Medical Sciences',
-  'MCh - Magister Chirurgiae (Super Speciality in Surgery)',
-  'DM - Doctorate of Medicine (Super Speciality in Medicine)'
+  'MBBS',
+  'MD',
+  'MS',
+  'BDS',
+  'MDS',
+  'BAMS',
+  'BHMS',
+  'BUMS',
+  'BNYS',
+  'DNB',
+  'PhD',
+  'MCh',
+  'DM'
 ];
 // yaha tak change kiya hu
   return (
@@ -591,37 +706,71 @@ const qualifications = [
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    योग्यता
-                  </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                    {qualifications.map(qual => (
-                      <label key={qual} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.qualification.includes(qual)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({
-                                ...formData,
-                                qualification: [...formData.qualification, qual]
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                qualification: formData.qualification.filter(q => q !== qual)
-                              });
-                            }
-                          }}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">{qual}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">एक या अधिक योग्यताएं चुनें</p>
-                </div>
+               <div className="relative" id="qualification-dropdown">
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    योग्यता
+  </label>
+
+  {/* Dropdown Button */}
+  <button
+    type="button"
+    onClick={() => setShowQualificationDropdown(!showQualificationDropdown)}
+    className="input-field text-left cursor-pointer flex justify-between items-center"
+  >
+    <span>
+      {formData.qualification.length > 0
+        ? formData.qualification.join(', ')
+        : 'योग्यता चुनें'}
+    </span>
+
+    {/* Arrow Icon */}
+    <svg
+      className={`w-4 h-4 ml-2 transform transition-transform duration-200 ${
+        showQualificationDropdown ? 'rotate-180' : 'rotate-0'
+      }`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  {/* Dropdown List */}
+  {showQualificationDropdown && (
+    <div className="absolute z-10 mt-2 w-full max-h-40 overflow-y-auto rounded-md bg-white border border-gray-300 shadow-lg">
+      {qualifications.map((qual) => (
+        <label
+          key={qual}
+          className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            checked={formData.qualification.includes(qual)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setFormData({
+                  ...formData,
+                  qualification: [...formData.qualification, qual],
+                });
+              } else {
+                setFormData({
+                  ...formData,
+                  qualification: formData.qualification.filter((q) => q !== qual),
+                });
+              }
+            }}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-700">{qual}</span>
+        </label>
+      ))}
+    </div>
+  )}
+</div>
+
+
+
 
                 <div>
                   {/* yaha change kiya hu */}
@@ -670,11 +819,16 @@ const qualifications = [
                   रद्द करें
                 </button>
                 <button
-                  onClick={editingDoctor ? handleEditDoctor : handleAddDoctor}
-                  className="btn-primary"
-                >
-                  {editingDoctor ? 'चिकित्सक अपडेट करें' : 'चिकित्सक जोड़ें'}
-                </button>
+  onClick={() => {
+    if (validateDoctorForm()) {
+      editingDoctor ? handleEditDoctor() : handleAddDoctor();
+    }
+  }}
+  className="btn-primary"
+>
+  {editingDoctor ? 'चिकित्सक अपडेट करें' : 'चिकित्सक जोड़ें'}
+</button>
+
               </div>
             </div>
           </div>
