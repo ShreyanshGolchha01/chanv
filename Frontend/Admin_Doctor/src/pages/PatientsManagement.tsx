@@ -184,6 +184,22 @@ const openDetailsModal = (patient: Patient) => {
     return '';
   };
 
+  // Function to calculate age from date of birth
+  const calculateAge = (dateOfBirth: string): string => {
+    if (!dateOfBirth) return '';
+    
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age.toString();
+  };
+
   // Function to format date to DD/MM/YYYY
   const formatDateToDDMMYYYY = (dateString: string) => {
     if (!dateString) return '';
@@ -375,8 +391,26 @@ const endpoint = `${serverUrl}add_patient.php`;
       return;
     }
 
-    // For employees and outsiders, phone is required
-    if ((personType === 'employee' || personType === 'outsider') && !newPatientData.phone) {
+    // Employee specific validation
+    if (personType === 'employee') {
+      if (!newPatientData.address || !newPatientData.department) {
+        alert('कृपया पता और विभाग दर्ज करें');
+        return;
+      }
+      // Email validation (only if email is provided)
+      if (newPatientData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newPatientData.email)) {
+        alert('कृपया एक वैध ईमेल पता दर्ज करें');
+        return;
+      }
+    }
+
+    // For employees, phone is required; for outsiders, phone is required
+    if (personType === 'employee' && !newPatientData.phone) {
+      alert('कृपया फोन नंबर दर्ज करें');
+      return;
+    }
+    
+    if (personType === 'outsider' && !newPatientData.phone) {
       alert('कृपया फोन नंबर दर्ज करें');
       return;
     }
@@ -387,7 +421,7 @@ const endpoint = `${serverUrl}add_patient.php`;
       return;
     }
 
-    // Relative validation
+    // Relative validation - only employee phone and relation required, patient phone is optional
     if (personType === 'relative') {
       if (!relativePhone || !relation) {
         alert('कृपया कर्मचारी का मोबाइल नंबर और रिश्ता दर्ज करें');
@@ -1367,10 +1401,10 @@ const endpoint = `${serverUrl}add_patient.php`;
                 />
               </div>
 
-              {/* Phone Number - Required for employee and outsider */}
+              {/* Phone Number - Required for employee and outsider, optional for relative */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  फोन नंबर {personType === 'employee' || personType === 'outsider' ? '*' : '(वैकल्पिक)'}
+                  फोन नंबर {personType === 'employee' || personType === 'outsider' ? '*' : '*'}
                 </label>
                 <input
                   type="tel"
@@ -1384,11 +1418,11 @@ const endpoint = `${serverUrl}add_patient.php`;
                 />
               </div>
 
-              {/* Email - Only for employee */}
+              {/* Email - Only for employee (optional) */}
               {personType === 'employee' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ईमेल पता (वैकल्पिक)
+                    ईमेल पता *
                   </label>
                   <input
                     type="email"
@@ -1467,27 +1501,37 @@ const endpoint = `${serverUrl}add_patient.php`;
                 <input
                   type="date"
                   value={newPatientData.dateOfBirth}
-                  onChange={(e) => setNewPatientData({...newPatientData, dateOfBirth: e.target.value})}
+                  onChange={(e) => {
+                    const newDateOfBirth = e.target.value;
+                    const calculatedAge = calculateAge(newDateOfBirth);
+                    setNewPatientData({
+                      ...newPatientData, 
+                      dateOfBirth: newDateOfBirth,
+                      age: calculatedAge
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
               </div>
 
-              {/* Age */}
+              {/* Age (Auto-calculated) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  उम्र *
+                  उम्र (स्वचालित गणना)
                 </label>
                 <input
                   type="number"
                   value={newPatientData.age}
                   onChange={(e) => setNewPatientData({...newPatientData, age: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="उम्र दर्ज करें"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50"
+                  placeholder="जन्म तिथि से गणना होगी"
                   min="0"
                   max="120"
                   required
+                  readOnly
                 />
+                <p className="text-xs text-gray-500 mt-1">यह जन्म तिथि से स्वचालित रूप से गणना की जाती है</p>
               </div>
 
               {/* Gender */}
