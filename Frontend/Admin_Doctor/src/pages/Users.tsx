@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  Users as UsersIcon,
   Building,
   Calendar,
   ChevronDown,
-  ChevronRight,
   Download,
+  FileText,
+  Activity
 } from 'lucide-react';
 import serverUrl from './Server';
 import type { Patient } from '../types/interfaces';
-import HealthTimeline from './PatientsManagement';
 
 const Users: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ department: '', joiningYear: '' });
@@ -22,10 +20,38 @@ const Users: React.FC = () => {
   const itemsPerPage = 10;
   const [showHealthReportModal, setShowHealthReportModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [healthReportData, setHealthReportData] = useState<any>(null);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
 
-  const openHealthReportPopup = (patient: Patient) => {
+  const openHealthReportPopup = async (patient: Patient) => {
     setSelectedPatient(patient);
+    setIsLoadingReport(true);
     setShowHealthReportModal(true);
+    
+    try {
+      // Fetch complete health reports for this patient
+      const response = await axios.post(`${serverUrl}get_health_records.php`, {
+        patient_id: patient.id
+      });
+      
+      console.log('Health Report Response:', response.data);
+      
+      if (response.data && response.data.posts && response.data.posts.length > 0) {
+        // Get all reports sorted by date (latest first)
+        const allReports = response.data.posts.sort((a: any, b: any) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        setHealthReportData(allReports);
+      } else {
+        setHealthReportData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching health report:', error);
+      setHealthReportData(null);
+      alert('स्वास्थ्य रिपोर्ट लोड करने में त्रुटि हुई');
+    } finally {
+      setIsLoadingReport(false);
+    }
   };
 
   useEffect(() => {
@@ -63,18 +89,115 @@ const Users: React.FC = () => {
     fetchPatients();
   }, []);
 
-  const toggleRowExpansion = (userId: string) => {
-    const newExpandedRows = new Set(expandedRows);
-    if (newExpandedRows.has(userId)) {
-      newExpandedRows.delete(userId);
-    } else {
-      newExpandedRows.add(userId);
+  const generatePDF = async (user: Patient) => {
+    // Try to fetch health reports for PDF
+    let healthReportsForPDF: any[] = [];
+    
+    try {
+      const response = await axios.post(`${serverUrl}get_health_records.php`, {
+        patient_id: user.id
+      });
+      
+      if (response.data && response.data.posts && response.data.posts.length > 0) {
+        healthReportsForPDF = response.data.posts.sort((a: any, b: any) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching health reports for PDF:', error);
     }
-    setExpandedRows(newExpandedRows);
-  };
 
-  const generatePDF = (user: Patient) => {
-    alert(`PDF report for ${user.name} will be downloaded (Demo)`);
+    // Create detailed PDF content with health reports
+    let pdfContent = `
+मरीज़ का संपूर्ण स्वास्थ्य रिपोर्ट
+=====================================
+
+व्यक्तिगत जानकारी:
+-----------------
+नाम: ${user.name}
+आयु: ${user.age} वर्ष
+लिंग: ${user.gender === 'male' ? 'पुरुष' : user.gender === 'female' ? 'महिला' : 'अन्य'}
+रक्त समूह: ${user.bloodGroup || 'अज्ञात'}
+जन्म तिथि: ${new Date(user.dateOfBirth).toLocaleDateString('hi-IN')}
+
+संपर्क विवरण:
+-----------
+फोन: ${user.phone}
+ईमेल: ${user.email || 'उपलब्ध नहीं'}
+पता: ${user.address || 'उपलब्ध नहीं'}
+
+चिकित्सा जानकारी:
+---------------
+विभाग: ${user.department || 'अज्ञात'}
+अंतिम जांच: ${new Date(user.lastVisit).toLocaleDateString('hi-IN')}
+स्वास्थ्य स्थिति: ${user.healthStatus || 'सामान्य'}
+परिवारिक सदस्य: ${user.familyMembers || 0}
+
+अन्य विवरण:
+----------
+ABHA ID: ${user.hasAbhaId === 'yes' ? 'हाँ' : 'नहीं'}
+आयुष्मान कार्ड: ${user.hasAyushmanCard === 'yes' ? 'हाँ' : 'नहीं'}
+
+`;
+
+    // Add health reports if available
+    if (healthReportsForPDF.length > 0) {
+      pdfContent += `
+विस्तृत स्वास्थ्य रिपोर्ट्स:
+========================
+
+कुल रिपोर्ट्स: ${healthReportsForPDF.length}
+
+`;
+
+      healthReportsForPDF.forEach((report: any, index: number) => {
+        pdfContent += `
+${index + 1}. रिपोर्ट दिनांक: ${new Date(report.date).toLocaleDateString('hi-IN')}
+   -------------------------------------------
+   डॉक्टर: ${report.doctor_name || 'अज्ञात'}
+   विभाग: ${report.department || user.department || 'अज्ञात'}
+   
+   जीवन संकेतक:
+   तापमान: ${report.temperature || 'दर्ज नहीं'}
+   नाड़ी: ${report.pulse || 'दर्ज नहीं'}
+   रक्तचाप: ${report.blood_pressure || 'दर्ज नहीं'}
+   वजन: ${report.weight || 'दर्ज नहीं'}
+   
+   निदान: ${report.diagnosis || 'कोई विशेष निदान नहीं'}
+   
+   उपचार/दवाएं: ${report.treatment || report.medicines || 'कोई विशेष उपचार नहीं'}
+   
+   ${report.notes ? `डॉक्टर की टिप्पणी: ${report.notes}` : ''}
+
+`;
+      });
+    } else {
+      pdfContent += `
+विस्तृत स्वास्थ्य रिपोर्ट्स:
+========================
+
+❌ कोई विस्तृत स्वास्थ्य रिपोर्ट उपलब्ध नहीं है।
+कृपया नियमित स्वास्थ्य जांच कराएं।
+
+`;
+    }
+
+    pdfContent += `
+रिपोर्ट तैयार की गई: ${new Date().toLocaleDateString('hi-IN')} ${new Date().toLocaleTimeString('hi-IN')}
+----------------------------------------
+छांव स्वास्थ्य शिविर - SSIPMT, Raipur
+    `;
+
+    // Create and download PDF
+    const element = document.createElement('a');
+    const file = new Blob([pdfContent], { type: 'text/plain;charset=utf-8' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${user.name}_Complete_Health_Report_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    
+    alert(`${user.name} की संपूर्ण स्वास्थ्य रिपोर्ट डाउनलोड हो गई!`);
   };
 
   const filteredData = patients.filter((user) => {
@@ -97,7 +220,6 @@ const Users: React.FC = () => {
   };
 
   const departments = Array.from(new Set(patients.map((p) => p.department).filter(Boolean)));
-  const years = Array.from(new Set(patients.map((p) => new Date(p.lastVisit).getFullYear().toString())));
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -174,119 +296,334 @@ const Users: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">नाम</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">विभाग</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ब्लड ग्रुप</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">संपर्क</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">कार्रवाई</th>
-                <th></th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">रिपोर्ट</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">नाम</th>
+                <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">विभाग</th>
+                <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">ब्लड ग्रुप</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">संपर्क</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">कार्रवाई</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-  {currentData.map((row) => (
-    <React.Fragment key={row.id}>
-      <tr className="hover:bg-gray-50">
-        {/* Name + Email */}
-        <td className="px-6 py-4">
-          <div>
-            <p className="font-medium text-gray-900">{row.name}</p>
-            <p className="text-sm text-gray-500">{row.email}</p>
-          </div>
-        </td>
+              {currentData.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50">
+                  {/* Name + Email */}
+                  <td className="px-3 py-4">
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">{row.name}</p>
+                      <p className="text-xs text-gray-500">{row.email}</p>
+                      {/* Show department and blood group on mobile */}
+                      <div className="md:hidden mt-1">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 mr-2">
+                          <Building className="h-3 w-3 mr-1" />
+                          {row.department}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                          {row.bloodGroup}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
 
-        {/* Department */}
-        <td className="px-6 py-4">
-          <div className="flex items-center">
-            <Building className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-gray-900">{row.department}</span>
-          </div>
-        </td>
+                  {/* Department - Hidden on mobile */}
+                  <td className="hidden md:table-cell px-3 py-4">
+                    <div className="flex items-center">
+                      <Building className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-900 text-sm">{row.department}</span>
+                    </div>
+                  </td>
 
-        {/* Blood Group */}
-        <td className="px-6 py-4">
-          <span className="text-gray-900">{row.bloodGroup}</span>
-        </td>
+                  {/* Blood Group - Hidden on mobile/tablet */}
+                  <td className="hidden lg:table-cell px-3 py-4">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 font-medium">
+                      {row.bloodGroup}
+                    </span>
+                  </td>
 
-        {/* Phone + Email */}
-        <td className="px-6 py-4">
-          <p className="text-sm text-gray-900">{row.phone}</p>
-          <p className="text-sm text-gray-500">{row.email}</p>
-        </td>
+                  {/* Phone */}
+                  <td className="px-3 py-4">
+                    <p className="text-sm text-gray-900">{row.phone}</p>
+                    <p className="text-xs text-gray-500 hidden sm:block">{row.email}</p>
+                  </td>
 
-        {/* PDF */}
-        <td className="px-6 py-4" colSpan={2}>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => generatePDF(row)}
-              className="flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-            >
-              <Download className="h-3 w-3" />
-              <span>PDF</span>
-            </button>
-          </div>
-        </td>
+                  {/* Actions - Responsive buttons */}
+                  <td className="px-3 py-4">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      {/* PDF Button */}
+                      <button
+                        onClick={() => generatePDF(row)}
+                        className="flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors w-full sm:w-auto"
+                        title="विस्तृत PDF रिपोर्ट डाउनलोड करें"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                        <span className="sm:hidden">PDF डाउनलोड</span>
+                      </button>
 
-        {/* Actions */}
-        <td className="px-6 py-4" colSpan={2}>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => openHealthReportPopup(row)}
-              className="flex items-center space-x-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-            >
-              <span>रिपोर्ट</span>
-            </button>
-          </div>
-        </td>
-      </tr>
-    </React.Fragment>
-  ))}
-</tbody>
-
+                      {/* Health Report Button */}
+                      <button
+                        onClick={() => openHealthReportPopup(row)}
+                        className="flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors w-full sm:w-auto"
+                        title="नवीनतम स्वास्थ्य रिपोर्ट देखें"
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span className="hidden sm:inline">रिपोर्ट</span>
+                        <span className="sm:hidden">स्वास्थ्य रिपोर्ट</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
 
         {/* Health Report Modal */}
         {showHealthReportModal && selectedPatient && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 transition-all duration-300 ease-in-out">
-            <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-3xl p-8 border border-gray-200 animate-fade-in-up">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-200">
               <button
                 onClick={() => setShowHealthReportModal(false)}
-                className="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-2xl"
+                className="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-2xl z-10"
                 aria-label="Close"
               >
                 ✕
               </button>
-              <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">📄 स्वास्थ्य रिपोर्ट</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full table-auto border border-gray-300 text-sm text-left text-gray-800">
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-2 font-semibold">👤 नाम:</td>
-                      <td className="p-2">{selectedPatient.name}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-2 font-semibold">📅 अंतिम जांच:</td>
-                      <td className="p-2">{new Date(selectedPatient.lastVisit).toLocaleDateString('hi-IN')}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-2 font-semibold">🩺 स्वास्थ्य स्थिति:</td>
-                      <td className="p-2">{selectedPatient.healthStatus}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 font-semibold">📊 रिपोर्ट सारांश:</td>
-                      {/* <td className="p-2">{selectedPatient.reportSummary || 'रिपोर्ट उपलब्ध नहीं है'}</td> */}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setShowHealthReportModal(false)}
-                  className="px-6 py-2 bg-green-600 text-white text-sm rounded-full hover:bg-green-700 transition"
-                >
-                  बंद करें
-                </button>
+              
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-3xl font-semibold text-gray-800 mb-2">📄 नवीनतम स्वास्थ्य रिपोर्ट</h2>
+                  <p className="text-gray-600">{selectedPatient.name} के लिए</p>
+                </div>
+
+                {isLoadingReport ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <span className="ml-3 text-gray-600">रिपोर्ट लोड हो रही है...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Patient Info */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <Activity className="h-5 w-5 mr-2 text-blue-600" />
+                        मरीज़ की जानकारी
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">👤 नाम:</span>
+                          <span className="text-gray-800">{selectedPatient.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">🎂 आयु:</span>
+                          <span className="text-gray-800">{selectedPatient.age} वर्ष</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">🩸 रक्त समूह:</span>
+                          <span className="text-gray-800">{selectedPatient.bloodGroup || 'अज्ञात'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">📞 संपर्क:</span>
+                          <span className="text-gray-800">{selectedPatient.phone}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">🏢 विभाग:</span>
+                          <span className="text-gray-800">{selectedPatient.department || 'अज्ञात'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Health Report Data */}
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-green-600" />
+                        स्वास्थ्य विवरण
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">📅 अंतिम जांच:</span>
+                          <span className="text-gray-800">{new Date(selectedPatient.lastVisit).toLocaleDateString('hi-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">🩺 स्वास्थ्य स्थिति:</span>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            selectedPatient.healthStatus === 'good' ? 'bg-green-100 text-green-800' :
+                            selectedPatient.healthStatus === 'fair' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {selectedPatient.healthStatus || 'सामान्य'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">👨‍👩‍👧‍👦 परिवारिक सदस्य:</span>
+                          <span className="text-gray-800">{selectedPatient.familyMembers || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">🆔 ABHA ID:</span>
+                          <span className="text-gray-800">{selectedPatient.hasAbhaId === 'yes' ? '✅ हाँ' : '❌ नहीं'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600">💳 आयुष्मान कार्ड:</span>
+                          <span className="text-gray-800">{selectedPatient.hasAyushmanCard === 'yes' ? '✅ हाँ' : '❌ नहीं'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Latest Health Report Details */}
+                {healthReportData && Array.isArray(healthReportData) && healthReportData.length > 0 && (
+                  <div className="mt-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                      संपूर्ण स्वास्थ्य रिपोर्ट ({healthReportData.length} रिपोर्ट्स)
+                    </h3>
+                    
+                    {/* Latest Report Highlight */}
+                    <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                      <h4 className="font-semibold text-blue-800 mb-3">📋 नवीनतम रिपोर्ट</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">📅 तारीख:</span>
+                            <span className="text-gray-800">{new Date(healthReportData[0].date).toLocaleDateString('hi-IN')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">👨‍⚕️ डॉक्टर:</span>
+                            <span className="text-gray-800">{healthReportData[0].doctor_name || 'डॉ. अज्ञात'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">🏥 विभाग:</span>
+                            <span className="text-gray-800">{healthReportData[0].department || selectedPatient.department || 'अज्ञात'}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">🌡️ तापमान:</span>
+                            <span className="text-gray-800">{healthReportData[0].temperature || 'सामान्य'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">💗 नाड़ी:</span>
+                            <span className="text-gray-800">{healthReportData[0].pulse || 'सामान्य'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium text-gray-600">🩸 रक्तचाप:</span>
+                            <span className="text-gray-800">{healthReportData[0].blood_pressure || 'सामान्य'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Diagnosis and Treatment */}
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <span className="font-medium text-gray-600 block mb-1">🔍 निदान:</span>
+                          <p className="text-gray-800 p-3 bg-white rounded border">
+                            {healthReportData[0].diagnosis || 'कोई विशेष निदान नहीं'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-600 block mb-1">💊 उपचार/दवाएं:</span>
+                          <p className="text-gray-800 p-3 bg-white rounded border">
+                            {healthReportData[0].treatment || healthReportData[0].medicines || 'कोई विशेष उपचार नहीं'}
+                          </p>
+                        </div>
+                        {healthReportData[0].notes && (
+                          <div>
+                            <span className="font-medium text-gray-600 block mb-1">📝 डॉक्टर की टिप्पणी:</span>
+                            <p className="text-gray-800 p-3 bg-white rounded border">
+                              {healthReportData[0].notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* All Reports Timeline */}
+                    {healthReportData.length > 1 && (
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="font-semibold text-gray-800 mb-4">📈 स्वास्थ्य इतिहास</h4>
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {healthReportData.map((report: any, index: number) => (
+                            <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-800">
+                                    📅 {new Date(report.date).toLocaleDateString('hi-IN')}
+                                  </span>
+                                  {index === 0 && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                      नवीनतम
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  👨‍⚕️ {report.doctor_name || 'डॉक्टर'}
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                <div>
+                                  <span className="font-medium text-gray-600">तापमान:</span>
+                                  <span className="text-gray-800 ml-1">{report.temperature || 'N/A'}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-600">नाड़ी:</span>
+                                  <span className="text-gray-800 ml-1">{report.pulse || 'N/A'}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-600">रक्तचाप:</span>
+                                  <span className="text-gray-800 ml-1">{report.blood_pressure || 'N/A'}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-600">वजन:</span>
+                                  <span className="text-gray-800 ml-1">{report.weight || 'N/A'}</span>
+                                </div>
+                              </div>
+                              
+                              {report.diagnosis && (
+                                <div className="mt-2">
+                                  <span className="font-medium text-gray-600 text-xs">निदान:</span>
+                                  <p className="text-gray-800 text-xs mt-1 truncate">
+                                    {report.diagnosis}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(!healthReportData || (Array.isArray(healthReportData) && healthReportData.length === 0)) && !isLoadingReport && (
+                  <div className="mt-6 bg-yellow-50 rounded-lg p-6 text-center">
+                    <div className="text-yellow-600 mb-2">⚠️</div>
+                    <h4 className="text-lg font-semibold text-yellow-800 mb-2">कोई स्वास्थ्य रिपोर्ट उपलब्ध नहीं</h4>
+                    <p className="text-yellow-700 mb-4">
+                      {selectedPatient.name} के लिए अभी तक कोई विस्तृत स्वास्थ्य रिपोर्ट दर्ज नहीं की गई है।
+                    </p>
+                    <div className="text-sm text-yellow-600">
+                      <p>• कृपया पहले स्वास्थ्य जांच कराएं</p>
+                      <p>• डॉक्टर से मिलकर रिपोर्ट बनवाएं</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-8 flex justify-center space-x-4">
+                  <button
+                    onClick={() => generatePDF(selectedPatient)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>PDF डाउनलोड करें</span>
+                  </button>
+                  <button
+                    onClick={() => setShowHealthReportModal(false)}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                  >
+                    बंद करें
+                  </button>
+                </div>
               </div>
             </div>
           </div>
