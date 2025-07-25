@@ -32,7 +32,7 @@ const PatientsManagement: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
 const [showAddPatientForm, setShowAddPatientForm] = useState(false);
-const [isRelative, setIsRelative] = useState<'yes' | 'no' | ''>('');
+const [personType, setPersonType] = useState<'employee' | 'relative' | 'outsider' | ''>('');
 const [relativePhone, setRelativePhone] = useState('');
 const [relation, setRelation] = useState('');
 const [newPatientData, setNewPatientData] = useState({
@@ -41,7 +41,13 @@ const [newPatientData, setNewPatientData] = useState({
   age: '',
   bloodGroup: '',
   gender: 'male' as 'male' | 'female' | 'other',
-  phone: ''
+  phone: '',
+  email: '',
+  address: '',
+  department: '',
+  familyMembers: '',
+  hasAbhaId: 'no' as 'yes' | 'no',
+  hasAyushmanCard: 'no' as 'yes' | 'no'
 });
 
 
@@ -89,9 +95,15 @@ const resetPatientForm = () => {
     age: '',
     bloodGroup: '',
     gender: 'male' as 'male' | 'female' | 'other',
-    phone: ''
+    phone: '',
+    email: '',
+    address: '',
+    department: '',
+    familyMembers: '',
+    hasAbhaId: 'no' as 'yes' | 'no',
+    hasAyushmanCard: 'no' as 'yes' | 'no'
   });
-  setIsRelative('');
+  setPersonType('');
   setRelativePhone('');
   setRelation('');
 };
@@ -291,7 +303,7 @@ const endpoint = `${serverUrl}add_patient.php`;
 
   const response = await axios.post(endpoint, {
      id: '0',
-      email: newPatient.email,
+      email: newPatient.email||' ',
       phone: newPatient.phone,
       password: newPatient.password,
       dateOfBirth: newPatient.dateOfBirth,
@@ -352,14 +364,19 @@ const endpoint = `${serverUrl}add_patient.php`;
   const handleAddNewPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
+    // Validation based on person type
+    if (!personType) {
+      alert('कृपया व्यक्ति का प्रकार चुनें');
+      return;
+    }
+
     if (!newPatientData.name || !newPatientData.dateOfBirth || !newPatientData.age || !newPatientData.gender) {
       alert('कृपया सभी आवश्यक फ़ील्ड भरें');
       return;
     }
 
-    // Phone validation - required only if not a relative
-    if (isRelative === 'no' && !newPatientData.phone) {
+    // For employees and outsiders, phone is required
+    if ((personType === 'employee' || personType === 'outsider') && !newPatientData.phone) {
       alert('कृपया फोन नंबर दर्ज करें');
       return;
     }
@@ -371,7 +388,7 @@ const endpoint = `${serverUrl}add_patient.php`;
     }
 
     // Relative validation
-    if (isRelative === 'yes') {
+    if (personType === 'relative') {
       if (!relativePhone || !relation) {
         alert('कृपया कर्मचारी का मोबाइल नंबर और रिश्ता दर्ज करें');
         return;
@@ -385,22 +402,52 @@ const endpoint = `${serverUrl}add_patient.php`;
     try {
       setIsLoading(true);
       
-      // Prepare API payload
-      const payload = {
-        name: newPatientData.name,
-        dateOfBirth: newPatientData.dateOfBirth,
-        age: newPatientData.age,
-        bloodGroup: newPatientData.bloodGroup,
-        gender: newPatientData.gender,
-        phone: newPatientData.phone,
-        isRelative: isRelative,
-        relativePhone: relativePhone,
-        relation: relation
-      };
+      let endpoint = '';
+      let payload: any = {};
+
+      if (personType === 'employee') {
+        // Use existing employee API
+        endpoint = `${serverUrl}add_patient.php`;
+        
+        // Generate password for employee
+        const autoPassword = newPatientData.name.length >= 4 && newPatientData.phone.length >= 4 
+          ? generatePassword(newPatientData.name, newPatientData.phone) 
+          : '';
+
+        payload = {
+          id: '0',
+          email: newPatientData.email || '',
+          phone: newPatientData.phone,
+          password: autoPassword,
+          dateOfBirth: newPatientData.dateOfBirth,
+          name: newPatientData.name,
+          age: parseInt(newPatientData.age),
+          gender: newPatientData.gender,
+          bloodGroup: newPatientData.bloodGroup,
+          address: newPatientData.address,
+          familyMembers: parseInt(newPatientData.familyMembers) || 0,
+          department: newPatientData.department,
+          hasAbhaId: newPatientData.hasAbhaId,
+          hasAyushmanCard: newPatientData.hasAyushmanCard
+        };
+      } else {
+        // Use patient API for relatives and outsiders
+        endpoint = `${serverUrl}add_patient_new.php`;
+        payload = {
+          name: newPatientData.name,
+          dateOfBirth: newPatientData.dateOfBirth,
+          age: newPatientData.age,
+          bloodGroup: newPatientData.bloodGroup,
+          gender: newPatientData.gender,
+          phone: newPatientData.phone,
+          isRelative: personType === 'relative' ? 'yes' : 'no',
+          relativePhone: personType === 'relative' ? relativePhone : '',
+          relation: personType === 'relative' ? relation : ''
+        };
+      }
 
       console.log('Sending payload:', payload);
 
-      const endpoint = `${serverUrl}add_patient_new.php`;
       const response = await axios.post(endpoint, payload, {
         headers: {
           'Content-Type': 'application/json'
@@ -409,10 +456,35 @@ const endpoint = `${serverUrl}add_patient.php`;
 
       console.log('API Response:', response.data);
 
-      if (response.data.success) {
+      if (response.data.success || response.data.posts) {
         // Success - show appropriate message
-        if (isRelative === 'yes') {
-          alert(`रिश्तेदार (${relation}) सफलतापूर्वक जोड़ा गया!\nकर्मचारी: ${response.data.data.employeeName}`);
+        if (personType === 'employee') {
+          alert('कर्मचारी सफलतापूर्वक जोड़ा गया!');
+          
+          // Update patients list for employee
+          if (response.data.posts) {
+            const newPatients: Patient[] = response.data.posts.map((post: any) => ({
+              id: post.id,
+              email: post.email,
+              phone: post.phone,
+              password: post.password,
+              dateOfBirth: post.dateOfBirth,
+              name: post.name,
+              age: parseInt(post.age),
+              gender: post.gender,
+              bloodGroup: post.bloodGroup,
+              address: post.address,
+              lastVisit: post.date,
+              healthStatus: post.healthStatus,
+              familyMembers: parseInt(post.familyMembers) || 0,
+              department: post.department,
+              hasAbhaId: post.hasAbhaId,
+              hasAyushmanCard: post.hasAyushmanCard
+            }));
+            setPatients(newPatients);
+          }
+        } else if (personType === 'relative') {
+          alert(`रिश्तेदार (${relation}) सफलतापूर्वक जोड़ा गया!\nकर्मचारी: ${response.data.data?.employeeName || ''}`);
         } else {
           alert('नया मरीज़ सफलतापूर्वक जोड़ा गया!');
         }
@@ -421,21 +493,18 @@ const endpoint = `${serverUrl}add_patient.php`;
         setShowAddPatientForm(false);
         resetPatientForm();
         
-        // Optionally refresh the patients list if needed
-        // fetchPatients();
-        
       } else {
-        alert(response.data.message || 'मरीज़ जोड़ते समय त्रुटि हुई।');
+        alert(response.data.message || 'व्यक्ति जोड़ते समय त्रुटि हुई।');
       }
       
     } catch (error: any) {
-      console.error('Error adding patient:', error);
+      console.error('Error adding person:', error);
       
       // Check if it's an API error with response
       if (error.response && error.response.data && error.response.data.message) {
         alert(error.response.data.message);
       } else {
-        alert('मरीज़ जोड़ते समय त्रुटि हुई। कृपया फिर से कोशिश करें।');
+        alert('व्यक्ति जोड़ते समय त्रुटि हुई। कृपया फिर से कोशिश करें।');
       }
     } finally {
       setIsLoading(false);
@@ -709,24 +778,12 @@ const endpoint = `${serverUrl}add_patient.php`;
   {/* Add Patient Button */}
   <button
     onClick={() => {
-      setEditingPatient(null);
-      setShowAddPatient(true);
-    }}
-    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-  >
-    <Plus className="h-4 w-4" />
-    <span>नया कर्मचारी जोड़ें</span>
-  </button>
-
-  {/* Add Patient Form Button */}
-  <button
-    onClick={() => {
       setShowAddPatientForm(true);
     }}
     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
   >
     <Plus className="h-4 w-4" />
-    <span>नया मरीज़ जोड़ें</span>
+    <span>नया व्यक्ति जोड़ें</span>
   </button>
 </div>
 
@@ -1223,12 +1280,12 @@ const endpoint = `${serverUrl}add_patient.php`;
         </div>
       )}
 
-      {/* Add New Patient Form Modal */}
+      {/* Add New Person Form Modal */}
       {showAddPatientForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">नया मरीज़ जोड़ें</h3>
+              <h3 className="text-lg font-semibold text-gray-900">नया व्यक्ति जोड़ें</h3>
               <button
                 onClick={() => {
                   resetPatientForm();
@@ -1241,25 +1298,26 @@ const endpoint = `${serverUrl}add_patient.php`;
             </div>
 
             <form onSubmit={handleAddNewPatient} className="space-y-4">
-              {/* Are you relative of employee */}
+              {/* Person Type Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  क्या आप किसी कर्मचारी के रिश्तेदार हैं? *
+                  व्यक्ति का प्रकार *
                 </label>
                 <select
-                  value={isRelative}
-                  onChange={(e) => setIsRelative(e.target.value as 'yes' | 'no')}
+                  value={personType}
+                  onChange={(e) => setPersonType(e.target.value as 'employee' | 'relative' | 'outsider')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 >
                   <option value="">चयन करें</option>
-                  <option value="yes">हाँ</option>
-                  <option value="no">नहीं</option>
+                  <option value="employee">कर्मचारी</option>
+                  <option value="relative">कर्मचारी का रिश्तेदार</option>
+                  <option value="outsider">बाहरी व्यक्ति</option>
                 </select>
               </div>
 
               {/* Employee Mobile Number - Only if relative */}
-              {isRelative === 'yes' && (
+              {personType === 'relative' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     कर्मचारी का मोबाइल नंबर *
@@ -1278,7 +1336,7 @@ const endpoint = `${serverUrl}add_patient.php`;
               )}
 
               {/* Relation - Only if relative */}
-              {isRelative === 'yes' && (
+              {personType === 'relative' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     रिश्ता *
@@ -1297,7 +1355,7 @@ const endpoint = `${serverUrl}add_patient.php`;
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  मरीज़ का नाम *
+                  {personType === 'employee' ? 'कर्मचारी का नाम' : 'व्यक्ति का नाम'} *
                 </label>
                 <input
                   type="text"
@@ -1308,6 +1366,98 @@ const endpoint = `${serverUrl}add_patient.php`;
                   required
                 />
               </div>
+
+              {/* Phone Number - Required for employee and outsider */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  फोन नंबर {personType === 'employee' || personType === 'outsider' ? '*' : '(वैकल्पिक)'}
+                </label>
+                <input
+                  type="tel"
+                  value={newPatientData.phone}
+                  onChange={(e) => setNewPatientData({...newPatientData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="10 अंकों का मोबाइल नंबर"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  required={personType === 'employee' || personType === 'outsider'}
+                />
+              </div>
+
+              {/* Email - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    ईमेल पता (वैकल्पिक)
+                  </label>
+                  <input
+                    type="email"
+                    value={newPatientData.email || ''}
+                    onChange={(e) => setNewPatientData({...newPatientData, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="example@email.com"
+                  />
+                </div>
+              )}
+
+              {/* Department - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    विभाग चुनें *
+                  </label>
+                  <select
+                    value={newPatientData.department || ''}
+                    onChange={(e) => setNewPatientData({...newPatientData, department: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">विभाग चुनें</option>
+                    <option value="सामान्य प्रशासन विभाग">सामान्य प्रशासन विभाग</option>
+                    <option value="गृह विभाग">गृह विभाग</option>
+                    <option value="वित्त विभाग">वित्त विभाग</option>
+                    <option value="स्वास्थ्य एवं परिवार कल्याण विभाग">स्वास्थ्य एवं परिवार कल्याण विभाग</option>
+                    <option value="स्कूल शिक्षा विभाग">स्कूल शिक्षा विभाग</option>
+                    <option value="उच्च शिक्षा विभाग">उच्च शिक्षा विभाग</option>
+                    <option value="तकनीकी शिक्षा विभाग">तकनीकी शिक्षा विभाग</option>
+                    <option value="वन विभाग">वन विभाग</option>
+                    <option value="राजस्व एवं आपदा प्रबंधन विभाग">राजस्व एवं आपदा प्रबंधन विभाग</option>
+                    <option value="खाद्य, नागरिक आपूर्ति एवं उपभोक्ता संरक्षण विभाग">खाद्य, नागरिक आपूर्ति एवं उपभोक्ता संरक्षण विभाग</option>
+                    <option value="कृषि विभाग">कृषि विभाग</option>
+                    <option value="पंचायत एवं ग्रामीण विकास विभाग">पंचायत एवं ग्रामीण विकास विभाग</option>
+                    <option value="श्रम विभाग">श्रम विभाग</option>
+                    <option value="महिला एवं बाल विकास विभाग">महिला एवं बाल विकास विभाग</option>
+                    <option value="जनजातीय कार्य विभाग">जनजातीय कार्य विभाग</option>
+                    <option value="अनुसूचित जाति एवं अन्य पिछड़ा वर्ग विकास विभाग">अनुसूचित जाति एवं अन्य पिछड़ा वर्ग विकास विभाग</option>
+                    <option value="ऊर्जा विभाग">ऊर्जा विभाग</option>
+                    <option value="जल संसाधन विभाग">जल संसाधन विभाग</option>
+                    <option value="लोक निर्माण विभाग">लोक निर्माण विभाग</option>
+                    <option value="परिवहन विभाग">परिवहन विभाग</option>
+                    <option value="नगर प्रशासन विभाग">नगर प्रशासन विभाग</option>
+                    <option value="सूचना प्रौद्योगिकी विभाग">सूचना प्रौद्योगिकी विभाग</option>
+                    <option value="पर्यटन विभाग">पर्यटन विभाग</option>
+                    <option value="खेल एवं युवा कल्याण विभाग">खेल एवं युवा कल्याण विभाग</option>
+                    <option value="उद्योग विभाग">उद्योग विभाग</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Address - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    पता *
+                  </label>
+                  <textarea
+                    value={newPatientData.address || ''}
+                    onChange={(e) => setNewPatientData({...newPatientData, address: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="पूरा पता दर्ज करें"
+                    rows={2}
+                    required
+                  />
+                </div>
+              )}
 
               {/* Date of Birth */}
               <div>
@@ -1340,6 +1490,23 @@ const endpoint = `${serverUrl}add_patient.php`;
                 />
               </div>
 
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  लिंग *
+                </label>
+                <select
+                  value={newPatientData.gender}
+                  onChange={(e) => setNewPatientData({...newPatientData, gender: e.target.value as 'male' | 'female' | 'other'})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                >
+                  <option value="male">पुरुष</option>
+                  <option value="female">महिला</option>
+                  <option value="other">अन्य</option>
+                </select>
+              </div>
+
               {/* Blood Group */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1362,39 +1529,59 @@ const endpoint = `${serverUrl}add_patient.php`;
                 </select>
               </div>
 
-              {/* Gender */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  लिंग *
-                </label>
-                <select
-                  value={newPatientData.gender}
-                  onChange={(e) => setNewPatientData({...newPatientData, gender: e.target.value as 'male' | 'female' | 'other'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  required
-                >
-                  <option value="male">पुरुष</option>
-                  <option value="female">महिला</option>
-                  <option value="other">अन्य</option>
-                </select>
-              </div>
+              {/* Family Members - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    पारिवारिक सदस्यों की संख्या
+                  </label>
+                  <input
+                    type="number"
+                    value={newPatientData.familyMembers || '0'}
+                    onChange={(e) => setNewPatientData({...newPatientData, familyMembers: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="कुल पारिवारिक सदस्य"
+                    min="0"
+                    max="20"
+                  />
+                </div>
+              )}
 
-              {/* Phone Number - Required only if not relative */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  फोन नंबर {isRelative === 'no' ? '*' : '(वैकल्पिक)'}
-                </label>
-                <input
-                  type="tel"
-                  value={newPatientData.phone}
-                  onChange={(e) => setNewPatientData({...newPatientData, phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="10 अंकों का मोबाइल नंबर"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                  required={isRelative === 'no'}
-                />
-              </div>
+              {/* ABHA ID - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    क्या आपका ABHA ID बना है? *
+                  </label>
+                  <select
+                    value={newPatientData.hasAbhaId || 'no'}
+                    onChange={(e) => setNewPatientData({...newPatientData, hasAbhaId: e.target.value as 'yes' | 'no'})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="no">नहीं</option>
+                    <option value="yes">हाँ</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Ayushman Card - Only for employee */}
+              {personType === 'employee' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    क्या आपका आयुष्मान कार्ड बना है? *
+                  </label>
+                  <select
+                    value={newPatientData.hasAyushmanCard || 'no'}
+                    onChange={(e) => setNewPatientData({...newPatientData, hasAyushmanCard: e.target.value as 'yes' | 'no'})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="no">नहीं</option>
+                    <option value="yes">हाँ</option>
+                  </select>
+                </div>
+              )}
 
               {/* Buttons */}
               <div className="flex space-x-3 pt-4">
@@ -1414,7 +1601,10 @@ const endpoint = `${serverUrl}add_patient.php`;
                   disabled={isLoading}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'जोड़ा जा रहा है...' : 'मरीज़ जोड़ें'}
+                  {isLoading ? 'जोड़ा जा रहा है...' : 
+                   personType === 'employee' ? 'कर्मचारी जोड़ें' :
+                   personType === 'relative' ? 'रिश्तेदार जोड़ें' : 
+                   'मरीज़ जोड़ें'}
                 </button>
               </div>
             </form>
