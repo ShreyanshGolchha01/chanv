@@ -157,8 +157,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
       }
       
       console.log('Fetching profile for phone:', phoneNumber);
-      
-      const response = await fetch(`http://192.168.1.9/chanv/show_profile.php?phoneNumber=${phoneNumber}`, {
+
+      const response = await fetch(`${serverUrl}/show_profile.php?phoneNumber=${phoneNumber}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -324,7 +324,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack, onLogout }) => {
 
         console.log('Adding family member:', requestData);
 
-        const response = await fetch('http://192.168.1.9/chanv/add_family.php', {
+        const response = await fetch(`${serverUrl}/add_family.php`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

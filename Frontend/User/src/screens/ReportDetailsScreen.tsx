@@ -118,9 +118,9 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
     try {
       setLoading(true);
       console.log('Fetching health reports for user:', userId);
-      
-      const response = await fetch(`http://192.168.1.9/chanv/get_health_reports.php?patientId=${userId}`);
-      
+
+      const response = await fetch(`${serverUrl}/get_health_reports.php?patientId=${userId}`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -146,8 +146,8 @@ const ReportDetailsScreen: React.FC<ReportDetailsScreenProps> = ({ onBack, repor
 
   const loadCamps = async () => {
     try {
-      const response = await fetch(`http://192.168.1.9/chanv/get_camp_app.php?limit=5`);
-      
+      const response = await fetch(`${serverUrl}/get_camp_app.php?limit=5`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
