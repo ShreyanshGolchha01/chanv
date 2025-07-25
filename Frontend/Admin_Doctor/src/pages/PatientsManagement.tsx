@@ -1119,7 +1119,7 @@ const endpoint = `${serverUrl}add_patient.php`;
               {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  जन्म तिथि * (DD/MM/YYYY)
+                  जन्म तिथि * (MM/DD/YYYY)
                 </label>
                 <input
   type="date"
@@ -1422,7 +1422,7 @@ const endpoint = `${serverUrl}add_patient.php`;
               {personType === 'employee' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ईमेल पता *
+                    ईमेल पता 
                   </label>
                   <input
                     type="email"
