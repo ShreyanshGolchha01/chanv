@@ -358,17 +358,6 @@ ${index + 1}. रिपोर्ट दिनांक: ${new Date(report.date).
                         <span className="hidden sm:inline">PDF</span>
                         <span className="sm:hidden">PDF डाउनलोड</span>
                       </button>
-
-                      {/* Health Report Button */}
-                      <button
-                        onClick={() => openHealthReportPopup(row)}
-                        className="flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors w-full sm:w-auto"
-                        title="नवीनतम स्वास्थ्य रिपोर्ट देखें"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span className="hidden sm:inline">रिपोर्ट</span>
-                        <span className="sm:hidden">स्वास्थ्य रिपोर्ट</span>
-                      </button>
                     </div>
                   </td>
                 </tr>

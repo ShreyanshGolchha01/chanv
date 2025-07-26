@@ -35,6 +35,10 @@ const [showAddPatientForm, setShowAddPatientForm] = useState(false);
 const [personType, setPersonType] = useState<'employee' | 'relative' | 'outsider' | ''>('');
 const [relativePhone, setRelativePhone] = useState('');
 const [relation, setRelation] = useState('');
+const [statistics, setStatistics] = useState({
+  totalOutsiders: 0,
+  totalAyushmanBeneficiaries: 0
+});
 const [newPatientData, setNewPatientData] = useState({
   name: '',
   dateOfBirth: '',
@@ -107,6 +111,25 @@ const resetPatientForm = () => {
   setRelativePhone('');
   setRelation('');
 };
+
+// Load statistics from backend
+const loadStatistics = async () => {
+  try {
+    const endpoint = `${serverUrl}get_outsiders_ayushman_stats.php`;
+    const response = await axios.post(endpoint, {});
+    const data = response.data;
+
+    if (data.success) {
+      setStatistics({
+        totalOutsiders: data.data.totalOutsiders,
+        totalAyushmanBeneficiaries: data.data.totalAyushmanBeneficiaries
+      });
+    }
+  } catch (error) {
+    console.error('Error loading statistics:', error);
+  }
+};
+
 //========================
 useEffect(() => {
   const fetchPatients = async () => {
@@ -141,6 +164,7 @@ useEffect(() => {
   };
 
   fetchPatients(); // ✅ Make sure to call the async function here
+  loadStatistics(); // ✅ Load statistics from backend
 }, []);
 
 
@@ -666,7 +690,7 @@ const endpoint = `${serverUrl}add_patient.php`;
           <div className="p-6">
             <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-600">{patients.length}</div>
-            <div className="text-sm text-gray-600">कुल मरीज़</div>
+            <div className="text-sm text-gray-600">कुल कर्मचारी</div>
           </div>
         </div>
         
@@ -674,15 +698,9 @@ const endpoint = `${serverUrl}add_patient.php`;
           <div className="p-6">
             <Heart className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-600">
-              {patients.filter(p => {
-                const lastVisit = new Date(p.lastVisit);
-                const today = new Date();
-                const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7;
-              }).length}
+              {statistics.totalOutsiders}
             </div>
-            <div className="text-sm text-gray-600">हाल के मरीज़</div>
+            <div className="text-sm text-gray-600">कुल बाहरी व्यक्ति</div>
           </div>  
         </div>
         
@@ -690,15 +708,9 @@ const endpoint = `${serverUrl}add_patient.php`;
           <div className="p-6">
             <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-600">
-              {patients.filter(p => {
-                const lastVisit = new Date(p.lastVisit);
-                const today = new Date();
-                const diffTime = Math.abs(today.getTime() - lastVisit.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7;
-              }).length}
+              {statistics.totalAyushmanBeneficiaries}
             </div>
-            <div className="text-sm text-gray-600">इस सप्ताह मिले</div>
+            <div className="text-sm text-gray-600">कुल आयुष्मान लाभार्थी</div>
           </div>
         </div>
         
@@ -829,7 +841,7 @@ const endpoint = `${serverUrl}add_patient.php`;
       <div className="card border border-gray-400">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">
-            मरीजों की सूची ({filteredPatients.length} परिणाम)
+            कर्मचारियों की सूची ({filteredPatients.length} परिणाम)
           </h3>
         </div>
 

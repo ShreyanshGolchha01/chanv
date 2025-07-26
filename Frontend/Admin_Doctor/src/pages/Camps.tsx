@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-// UPDATED: Added Search, X, Save icons for new dialog functionality
-import { Plus, Calendar, MapPin, Users, Edit, Trash2, Eye, Search, X, Save } from 'lucide-react';
+// UPDATED: Added Search, X, Save, ChevronDown icons for new dialog functionality
+import { Plus, Calendar, MapPin, Users, Edit, Trash2, Eye, Search, X, Save, ChevronDown } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import DataTable from '../components/DataTable';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { mockCamps, mockDoctors, getDoctorById } from '../data/mockData';
@@ -39,6 +40,8 @@ const Camps: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDoctorDialog, setShowDoctorDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeStatusDropdown, setActiveStatusDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number} | null>(null);
 
 
 
@@ -75,11 +78,45 @@ const Camps: React.FC = () => {
         setShowDoctorDialog(false);
         setSearchTerm('');
       }
+      if (e.key === 'Escape' && activeStatusDropdown) {
+        setActiveStatusDropdown(null);
+        setDropdownPosition(null);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (activeStatusDropdown && !(e.target as Element).closest('.status-dropdown')) {
+        setActiveStatusDropdown(null);
+        setDropdownPosition(null);
+      }
+    };
+
+    const handleScroll = () => {
+      if (activeStatusDropdown) {
+        setActiveStatusDropdown(null);
+        setDropdownPosition(null);
+      }
+    };
+
+    const handleResize = () => {
+      if (activeStatusDropdown) {
+        setActiveStatusDropdown(null);
+        setDropdownPosition(null);
+      }
     };
 
     document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [showDoctorDialog]);
+    document.addEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showDoctorDialog, activeStatusDropdown]);
 
   // NEW: Added generic form input handler from NewCamp.tsx
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -163,11 +200,51 @@ const Camps: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // NEW: Function to handle manual status update
+  const handleStatusUpdate = async (campId: string, newStatus: string) => {
+    try {
+      const endpoint = `${serverUrl}update_camp_status.php`;
+      const response = await axios.post(endpoint, {
+        id: campId,
+        status: newStatus
+      });
+
+      if (response.data.success) {
+        // Update the specific camp in the state
+        setCamps(prevCamps => 
+          prevCamps.map(camp => 
+            camp.id === campId 
+              ? { ...camp, status: newStatus }
+              : camp
+          )
+        );
+        setActiveStatusDropdown(null); // Close dropdown
+        alert(`शिविर की स्थिति "${getStatusLabel(newStatus)}" में बदल दी गई है`);
+      } else {
+        alert('स्थिति अपडेट करने में त्रुटि: ' + response.data.message);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('स्थिति अपडेट करने में त्रुटि हुई');
+    }
+  };
+
+  // Helper function to get status label in Hindi
+  const getStatusLabel = (status: string) => {
+    const statusLabels = {
+      scheduled: 'निर्धारित',
+      ongoing: 'चल रहा',
+      completed: 'पूर्ण',
+      cancelled: 'रद्द',
+    };
+    return statusLabels[status as keyof typeof statusLabels] || status;
+  };
+
   //=================use effect to load data
  useEffect(() => {
   const fetchCamps = async () => {
     try {
-      const endpoint = `${serverUrl}show_camp.php`;
+      const endpoint = `${serverUrl}show_camp_updated.php`;
       const response = await axios.post(endpoint, {});
       console.log("Raw camp response:", response.data);
 
@@ -196,6 +273,19 @@ const Camps: React.FC = () => {
   };
 
   fetchCamps();
+
+  // Auto-update camp statuses every 30 seconds
+  const intervalId = setInterval(async () => {
+    try {
+      const endpoint = `${serverUrl}auto_update_camps.php`;
+      await axios.post(endpoint);
+      fetchCamps(); // Refresh camps after auto-update
+    } catch (error) {
+      console.error('Error in auto-update:', error);
+    }
+  }, 30000);
+
+  return () => clearInterval(intervalId);
 }, []);
 // Run only on component mount
 
@@ -416,12 +506,12 @@ const openEditModal = (camp: Camp) => {
 
 
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, campId: string) => {
     const statusStyles = {
-      scheduled: 'bg-blue-100 text-blue-800',
-      ongoing: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
+      scheduled: 'bg-blue-100 text-blue-800 border-blue-200',
+      ongoing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      completed: 'bg-green-100 text-green-800 border-green-200',
+      cancelled: 'bg-red-100 text-red-800 border-red-200',
     };
 
     const statusLabels = {
@@ -431,10 +521,92 @@ const openEditModal = (camp: Camp) => {
       cancelled: 'रद्द',
     };
 
+    const allStatuses = [
+      { value: 'scheduled', label: 'निर्धारित' },
+      { value: 'ongoing', label: 'चल रहा' },
+      { value: 'completed', label: 'पूर्ण' },
+      { value: 'cancelled', label: 'रद्द' }
+    ];
+
+    const handleButtonClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (activeStatusDropdown === campId) {
+        setActiveStatusDropdown(null);
+        setDropdownPosition(null);
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const dropdownHeight = 180; // Approximate height of dropdown
+        
+        // Check if dropdown would overflow viewport
+        const spaceBelow = viewportHeight - rect.bottom;
+        const shouldShowAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+        
+        setDropdownPosition({
+          top: shouldShowAbove 
+            ? rect.top + window.scrollY - dropdownHeight - 8
+            : rect.bottom + window.scrollY + 8,
+          left: rect.left + window.scrollX + rect.width / 2 - 75
+        });
+        setActiveStatusDropdown(campId);
+      }
+    };
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles[status as keyof typeof statusStyles]}`}>
-        {statusLabels[status as keyof typeof statusLabels] || status}
-      </span>
+      <>
+        <div className="relative status-dropdown">
+          <button
+            onClick={handleButtonClick}
+            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border cursor-pointer hover:shadow-md transform hover:scale-105 transition-all duration-200 ${
+              statusStyles[status as keyof typeof statusStyles]
+            }`}
+          >
+            <span>{statusLabels[status as keyof typeof statusLabels] || status}</span>
+            <ChevronDown className={`ml-1.5 h-3 w-3 transition-transform duration-200 ${
+              activeStatusDropdown === campId ? 'rotate-180' : ''
+            }`} />
+          </button>
+        </div>
+
+        {/* Portal Dropdown Menu */}
+        {activeStatusDropdown === campId && dropdownPosition && createPortal(
+          <div 
+            className="fixed bg-white border border-gray-200 rounded-lg shadow-2xl z-[9999] min-w-[150px] max-h-[200px] overflow-y-auto py-1 animate-in fade-in slide-in-from-top-2 duration-200"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left
+            }}
+            onWheel={(e) => e.stopPropagation()} // Prevent page scroll when scrolling inside dropdown
+          >
+            {allStatuses.map((statusOption) => (
+              <button
+                key={statusOption.value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusUpdate(campId, statusOption.value);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition-all duration-150 flex items-center space-x-2 hover:bg-gray-50 ${
+                  status === statusOption.value 
+                    ? 'bg-blue-50 text-blue-700 font-semibold' 
+                    : 'text-gray-700 hover:text-gray-900'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  statusOption.value === 'scheduled' ? 'bg-blue-500' :
+                  statusOption.value === 'ongoing' ? 'bg-yellow-500' :
+                  statusOption.value === 'completed' ? 'bg-green-500' :
+                  'bg-red-500'
+                }`} />
+                <span className="flex-1">{statusOption.label}</span>
+                {status === statusOption.value && (
+                  <span className="text-blue-600 flex-shrink-0">✓</span>
+                )}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+      </>
     );
   };
 
@@ -493,20 +665,14 @@ const openEditModal = (camp: Camp) => {
     {
       key: 'status',
       label: 'स्थिति',
-      render: (value) => getStatusBadge(value),
+      render: (value, row) => getStatusBadge(value, row.id),
     },
     {
       key: 'beneficiaries',
       label: 'लाभार्थी',
-      render: (value, row) => (
+      render: (_, row) => (
         <div>
-          <p className="font-medium text-gray-900">{value}/{row.expectedBeneficiaries}</p>
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-            <div
-              className="bg-primary-500 h-2 rounded-full"
-              style={{ width: `${Math.min((value / row.expectedBeneficiaries) * 100, 100)}%` }}
-            ></div>
-          </div>
+          <p className="font-medium text-gray-900">{row.expectedBeneficiaries}</p>
         </div>
       ),
     },
@@ -596,13 +762,13 @@ const openEditModal = (camp: Camp) => {
 
         <div className="card">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Users className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Calendar className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">कुल लाभार्थी</p>
+              <p className="text-sm font-medium text-gray-600">चल रहा</p>
               <p className="text-2xl font-bold text-gray-900">
-               {camps.reduce((sum, camp) => sum + (Number(camp.beneficiaries) || 0), 0)}
+                {camps.filter(camp => camp.status === 'ongoing').length}
               </p>
             </div>
           </div>

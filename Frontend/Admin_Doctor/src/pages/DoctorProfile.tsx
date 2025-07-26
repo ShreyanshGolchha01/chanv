@@ -346,8 +346,8 @@ useEffect(() => {
         <div className="card border border-gray-400 bg-orange-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600 mb-1">सेवा वर्ष</p>
-              <p className="text-2xl font-bold text-orange-900">{doctorData.statistics.yearsOfService}</p>
+              <p className="text-sm font-medium text-orange-600 mb-1">अनुभव</p>
+              <p className="text-2xl font-bold text-orange-900">{doctorData.professionalInfo.experience}</p>
             </div>
             <Clock className="h-8 w-8 text-orange-600" />
           </div>

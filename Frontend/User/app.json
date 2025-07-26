@@ -20,10 +20,16 @@
         "foregroundImage": "./assets/loading_screen.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.shreyansh_golchha1112.GovtHealthAppExpo"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "aa5e4ad7-5a78-46e0-9bda-cc429d4e289b"
+      }
     }
   }
 }

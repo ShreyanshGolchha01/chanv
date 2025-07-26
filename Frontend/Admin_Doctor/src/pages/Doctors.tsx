@@ -32,13 +32,15 @@ const Doctors: React.FC = () => {
 useEffect(() => {
   const fetchDoctors = async () => {
     try {
-      const endpoint = `${serverUrl}show_doctor.php`;
+      const endpoint = `${serverUrl}show_doctor_1.php`;
       const response = await axios.post(endpoint, {});
       const data = response.data;
 
       const loadedDoctors: Doctor[] = data.posts.map((doc: any) => ({
         id: doc.id,
         name: doc.name,
+        hospitalType: doc.hospitalType || '',
+        hospitalName: doc.hospitalName || '',
         specialty: doc.specialty,
         phone: doc.phone,
         email: doc.email,
@@ -176,10 +178,10 @@ const handleAddDoctor = async () => {
     return;
   }
 
-  const endpoint = `${serverUrl}add_doctor.php`;
+  const endpoint = `${serverUrl}add_doctor_1.php`;
 
   try {
-    const response = await axios.post(endpoint, {
+    await axios.post(endpoint, {
       id: '0',
       name: formData.name.trim(),
       hospitalType: formData.hospitalType.trim(),
@@ -195,41 +197,30 @@ const handleAddDoctor = async () => {
 
     alert('Doctor has been added!!');
 
-    const data = response.data;
+    // Refresh the doctors list by fetching from backend
+    const refreshEndpoint = `${serverUrl}show_doctor_1.php`;
+    const refreshResponse = await axios.post(refreshEndpoint, {});
+    const refreshData = refreshResponse.data;
 
-    if (data.posts && Array.isArray(data.posts)) {
-      const filteredDoctors = data.posts
-        .filter((post: any) =>
-          post.name &&
-          (post.specialty || post.specialization) &&
-          (post.phone || post.phoneNo) &&
-          post.email &&
-          parseInt(post.experience || '0', 10) > 0
-        )
-        .map((post: any) => ({
-          id: post.id,
-          name: post.name,
-          hospitalType: post.hospitalType ?? '',
-          hospitalName: post.hospitalName ?? '',
-          specialty: post.specialty || post.specialization,
-          phone: post.phone || post.phoneNo,
-          email: post.email,
-          password: formData.password,
-          experience: parseInt(post.experience || '0', 10),
-          qualification: Array.isArray(post.qualification)
-            ? post.qualification
-            : (typeof post.qualification === 'string'
-              ? post.qualification.split(',').map((q: string) => q.trim())
-              : []),
-          assignedCamps: Array.isArray(post.assignedCamps)
-            ? post.assignedCamps
-            : (typeof post.assignedCamps === 'string'
-              ? post.assignedCamps.split(',').map((c: string) => c.trim())
-              : []),
-        }));
+    const updatedDoctors: Doctor[] = refreshData.posts.map((doc: any) => ({
+      id: doc.id,
+      name: doc.name,
+      hospitalType: doc.hospitalType || '',
+      hospitalName: doc.hospitalName || '',
+      specialty: doc.specialty,
+      phone: doc.phone,
+      email: doc.email,
+      avatar: doc.avatar || '',
+      experience: Number(doc.experience),
+      qualification: doc.qualification
+        ? doc.qualification.split(',').map((q: string) => q.trim())
+        : [],
+      assignedCamps: doc.assignedCamps
+        ? doc.assignedCamps.split(',').map((c: string) => c.trim())
+        : []
+    }));
 
-      setDoctors(filteredDoctors);
-    }
+    setDoctors(updatedDoctors);
 
   } catch (error) {
     console.error('Error adding doctor:', error);
@@ -245,10 +236,10 @@ const handleAddDoctor = async () => {
   const handleEditDoctor = async () => {
   if (!editingDoctor) return;
 
-  const endpoint = `${serverUrl}update_doctor.php`;
+  const endpoint = `${serverUrl}update_doctor_1.php`;
 
   try {
-    const response = await axios.post(endpoint, {
+    await axios.post(endpoint, {
       id: editingDoctor.id,
       name: formData.name,
       hospitalType: formData.hospitalType,
@@ -265,38 +256,30 @@ const handleAddDoctor = async () => {
 
     alert('Doctor details have been updated!!');
 
-    const data = response.data;
+    // Refresh the doctors list by fetching from backend
+    const refreshEndpoint = `${serverUrl}show_doctor_1.php`;
+    const refreshResponse = await axios.post(refreshEndpoint, {});
+    const refreshData = refreshResponse.data;
 
-    if (data.posts && Array.isArray(data.posts)) {
-      const updatedDoctors: Doctor[] = data.posts
-        .filter((post: any) =>
-          post.name && post.specialization && post.phoneNo && post.email && parseInt(post.experience) > 0
-        )
-        .map((post: any) => ({
-          id: post.id,
-          name: post.name,
-          hospitalType: post.hospitalType ?? '',
-          hospitalName: post.hospitalName ?? '',
-          specialty: post.specialty || post.specialization,
-          phone: post.phone || post.phoneNo,
-          email: post.email,
-          password: formData.password, // optional
-          experience: parseInt(post.experience, 10),
-          qualification: Array.isArray(post.qualification)
-            ? post.qualification
-            : (typeof post.qualification === 'string' ? post.qualification.split(',') : []),
-          assignedCamps: Array.isArray(post.assignedCamps)
-            ? post.assignedCamps
-            : (typeof post.assignedCamps === 'string' ? post.assignedCamps.split(',') : []),
-          status: post.status ?? 'active',
-        }));
+    const updatedDoctors: Doctor[] = refreshData.posts.map((doc: any) => ({
+      id: doc.id,
+      name: doc.name,
+      hospitalType: doc.hospitalType || '',
+      hospitalName: doc.hospitalName || '',
+      specialty: doc.specialty,
+      phone: doc.phone,
+      email: doc.email,
+      avatar: doc.avatar || '',
+      experience: Number(doc.experience),
+      qualification: doc.qualification
+        ? doc.qualification.split(',').map((q: string) => q.trim())
+        : [],
+      assignedCamps: doc.assignedCamps
+        ? doc.assignedCamps.split(',').map((c: string) => c.trim())
+        : []
+    }));
 
-      // Replace existing edited doctor and update state
-      setDoctors([
-        ...doctors.filter((d) => d.id !== editingDoctor.id),
-        ...updatedDoctors,
-      ]);
-    }
+    setDoctors(updatedDoctors);
 
     // Close modal and reset
     setEditingDoctor(null);
@@ -316,36 +299,44 @@ const handleAddDoctor = async () => {
   if (!deletingDoctor) return;
   
   try {
-    const response = await axios.post(endpoint, {
+    await axios.post(endpoint, {
       id: deletingDoctor.id,
     });
 
     alert('Doctor has been deleted!!');
 
-    const data = response.data;
+    // Refresh the doctors list by fetching from backend
+    const refreshEndpoint = `${serverUrl}show_doctor_1.php`;
+    const refreshResponse = await axios.post(refreshEndpoint, {});
+    const refreshData = refreshResponse.data;
 
-    const newDoctors: Doctor[] = data.posts.map((post: any) => ({
-      id: post.id,
-      name: post.name,
-      specialty: post.specialty,
-      phone: post.phone,
-      email: post.email,
-      password: formData.password,
-      experience: parseInt(post.experience, 10),
-      // yaha change kiya hu
-      qualification: Array.isArray(post.qualification) 
-        ? post.qualification 
-        : (typeof post.qualification === 'string' ? post.qualification.split(',') : []),
-      assignedCamps: post.assignedCamps,
+    const updatedDoctors: Doctor[] = refreshData.posts.map((doc: any) => ({
+      id: doc.id,
+      name: doc.name,
+      hospitalType: doc.hospitalType || '',
+      hospitalName: doc.hospitalName || '',
+      specialty: doc.specialty,
+      phone: doc.phone,
+      email: doc.email,
+      avatar: doc.avatar || '',
+      experience: Number(doc.experience),
+      qualification: doc.qualification
+        ? doc.qualification.split(',').map((q: string) => q.trim())
+        : [],
+      assignedCamps: doc.assignedCamps
+        ? doc.assignedCamps.split(',').map((c: string) => c.trim())
+        : []
     }));
-//  yaha tak
-    setDoctors([...newDoctors]);
+
+    setDoctors(updatedDoctors);
+    setShowConfirmDialog(false);
+    setDeletingDoctor(null);
+
   } catch (error) {
     console.error('Error deleting doctor:', error);
     alert('Failed to delete doctor.');
   }
 
-  // setDeletingDoctor(null);
   resetForm();
 };
 
@@ -430,28 +421,20 @@ const handleAddDoctor = async () => {
             <Phone className="h-3 w-3 text-gray-400 mr-2" />
             <span className="text-sm text-gray-900">{value}</span>
           </div>
-          <div className="flex items-center">
-            <Mail className="h-3 w-3 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-500">{row.email}</span>
-          </div>
         </div>
       ),
     },
-   {
-  key: 'assignedCamps',
-  label: 'नियुक्त शिविर',
-  sortable: false,
-  render: (row) => (
-    <div className="space-y-1">
-      {(row.assignedCamps ?? []).map((camp: string, index: number) => (
-        <div key={index} className="bg-blue-100 text-blue-900 px-2 py-1 rounded">
-          {camp}
+    {
+      key: 'email',
+      label: 'ईमेल',
+      sortable: false,
+      render: (value) => (
+        <div className="flex items-center">
+          <Mail className="h-3 w-3 text-gray-400 mr-2" />
+          <span className="text-sm text-gray-900">{value}</span>
         </div>
-      ))}
-    </div>
-  ),
-}
-,
+      ),
+    },
 
     {
       key: 'actions',
@@ -575,12 +558,12 @@ const qualifications = [
         <div className="card">
           <div className="flex items-center">
             <div className="p-2 bg-orange-100 rounded-lg">
-              <Phone className="h-6 w-6 text-orange-600" />
+              <Plus className="h-6 w-6 text-orange-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">उपलब्ध</p>
+              <p className="text-sm font-medium text-gray-600">नए चिकित्सक</p>
               <p className="text-2xl font-bold text-gray-900">
-                {doctors.filter(doctor => doctor.assignedCamps.length > 0).length}
+                {doctors.filter(doctor => doctor.experience <= 2).length}
               </p>
             </div>
           </div>

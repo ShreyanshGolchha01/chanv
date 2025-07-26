@@ -514,6 +514,119 @@ const HealthRecords: React.FC = () => {
     localStorage.removeItem('searchedRelative');
   };
 
+  // Function to download individual health record as PDF
+  const handleDownloadRecord = (record: HealthRecord) => {
+    try {
+      // Create a formatted content for the health record
+      const content = `
+चिकित्सा रिपोर्ट
+========================================
+
+मरीज़ की जानकारी:
+नाम: ${record.patientName}
+आयु: ${record.age} वर्ष
+लिंग: ${record.gender === 'male' ? 'पुरुष' : 'महिला'}
+फोन: ${record.phone}
+पता: ${record.address}
+
+चिकित्सा जानकारी:
+कैंप: ${record.camp}
+दिनांक: ${new Date(record.visitDate).toLocaleDateString('hi-IN')}
+चेकअप प्रकार: ${record.checkupType}
+
+वाइटल साइन्स:
+रक्तचाप: ${record.vitals?.bloodPressure || 'N/A'}
+हृदय गति: ${record.vitals?.heartRate || 'N/A'} bpm
+तापमान: ${record.vitals?.temperature || 'N/A'} °F
+वजन: ${record.vitals?.weight || 'N/A'} kg
+कद: ${record.vitals?.height || 'N/A'} cm
+BMI: ${record.vitals?.bmi || 'N/A'}
+
+लक्षण: ${record.symptoms?.join(', ') || 'कोई विशेष लक्षण नहीं'}
+निदान: ${record.diagnosis}
+दवाइयां: ${record.medications?.join(', ') || 'कोई दवाई नहीं'}
+स्थिति: ${record.status}
+डॉक्टर की टिप्पणी: ${record.doctorNotes}
+
+========================================
+रिपोर्ट जेनरेट की गई: ${new Date().toLocaleString('hi-IN')}
+`;
+
+      // Create and download the file
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `चिकित्सा_रिपोर्ट_${record.patientName}_${record.visitDate}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message
+      alert(`${record.patientName} की चिकित्सा रिपोर्ट डाउनलोड हो गई`);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('रिपोर्ट डाउनलोड करने में त्रुटि हुई');
+    }
+  };
+
+  // Function to export all filtered records
+  const handleExportRecords = () => {
+    try {
+      if (healthRecords.length === 0) {
+        alert('एक्सपोर्ट करने के लिए कोई रिकॉर्ड नहीं मिला');
+        return;
+      }
+
+      // Create CSV content
+      let csvContent = 'मरीज़ का नाम,आयु,लिंग,फोन,पता,कैंप,दिनांक,चेकअप प्रकार,रक्तचाप,हृदय गति,तापमान,वजन,कद,BMI,लक्षण,निदान,दवाइयां,स्थिति,डॉक्टर की टिप्पणी\n';
+      
+      healthRecords.forEach(record => {
+        const row = [
+          record.patientName,
+          record.age,
+          record.gender === 'male' ? 'पुरुष' : 'महिला',
+          record.phone,
+          record.address,
+          record.camp,
+          new Date(record.visitDate).toLocaleDateString('hi-IN'),
+          record.checkupType,
+          record.vitals?.bloodPressure || '',
+          record.vitals?.heartRate || '',
+          record.vitals?.temperature || '',
+          record.vitals?.weight || '',
+          record.vitals?.height || '',
+          record.vitals?.bmi || '',
+          record.symptoms?.join('; ') || '',
+          record.diagnosis,
+          record.medications?.join('; ') || '',
+          record.status,
+          record.doctorNotes
+        ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
+        
+        csvContent += row + '\n';
+      });
+
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `स्वास्थ्य_रिकॉर्ड_एक्सपोर्ट_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message
+      alert(`${healthRecords.length} स्वास्थ्य रिकॉर्ड सफलतापूर्वक एक्सपोर्ट हो गए`);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('रिकॉर्ड एक्सपोर्ट करने में त्रुटि हुई');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -632,7 +745,10 @@ const HealthRecords: React.FC = () => {
               </div>
               
               <div className="flex space-x-2">
-                <button className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <button 
+                  onClick={handleExportRecords}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                >
                   <Download className="h-4 w-4" />
                   <span>एक्सपोर्ट</span>
                 </button>
@@ -770,6 +886,7 @@ const HealthRecords: React.FC = () => {
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
+                            onClick={() => handleDownloadRecord(record)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded"
                             title="डाउनलोड करें"
                           >

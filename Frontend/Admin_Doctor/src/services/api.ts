@@ -1,5 +1,5 @@
 // API Configuration
-const PHP_API_BASE_URL = 'http://localhost/chanv/';
+const PHP_API_BASE_URL = 'http://165.22.208.62:8080/';
 
 // Dashboard API
 export const dashboardAPI = {
