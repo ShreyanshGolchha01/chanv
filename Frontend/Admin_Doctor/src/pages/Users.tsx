@@ -19,40 +19,40 @@ const Users: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [showHealthReportModal, setShowHealthReportModal] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [healthReportData, setHealthReportData] = useState<any>(null);
-  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [selectedPatient] = useState<Patient | null>(null);
+  const [healthReportData] = useState<any>(null);
+  const [isLoadingReport] = useState(false);
 
-  const openHealthReportPopup = async (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsLoadingReport(true);
-    setShowHealthReportModal(true);
+  // const openHealthReportPopup = async (patient: Patient) => {
+  //   setSelectedPatient(patient);
+  //   setIsLoadingReport(true);
+  //   setShowHealthReportModal(true);
     
-    try {
-      // Fetch complete health reports for this patient
-      const response = await axios.post(`${serverUrl}get_health_records.php`, {
-        patient_id: patient.id
-      });
+  //   try {
+  //     // Fetch complete health reports for this patient
+  //     const response = await axios.post(`${serverUrl}get_health_records.php`, {
+  //       patient_id: patient.id
+  //     });
       
-      console.log('Health Report Response:', response.data);
+  //     console.log('Health Report Response:', response.data);
       
-      if (response.data && response.data.posts && response.data.posts.length > 0) {
-        // Get all reports sorted by date (latest first)
-        const allReports = response.data.posts.sort((a: any, b: any) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setHealthReportData(allReports);
-      } else {
-        setHealthReportData(null);
-      }
-    } catch (error) {
-      console.error('Error fetching health report:', error);
-      setHealthReportData(null);
-      alert('स्वास्थ्य रिपोर्ट लोड करने में त्रुटि हुई');
-    } finally {
-      setIsLoadingReport(false);
-    }
-  };
+  //     if (response.data && response.data.posts && response.data.posts.length > 0) {
+  //       // Get all reports sorted by date (latest first)
+  //       const allReports = response.data.posts.sort((a: any, b: any) => 
+  //         new Date(b.date).getTime() - new Date(a.date).getTime()
+  //       );
+  //       setHealthReportData(allReports);
+  //     } else {
+  //       setHealthReportData(null);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching health report:', error);
+  //     setHealthReportData(null);
+  //     alert('स्वास्थ्य रिपोर्ट लोड करने में त्रुटि हुई');
+  //   } finally {
+  //     setIsLoadingReport(false);
+  //   }
+  // };
 
   useEffect(() => {
     const fetchPatients = async () => {
