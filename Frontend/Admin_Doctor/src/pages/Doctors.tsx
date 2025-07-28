@@ -415,7 +415,7 @@ const handleAddDoctor = async () => {
     {
       key: 'phone',
       label: 'संपर्क',
-      render: (value, row) => (
+      render: (value) => (
         <div className="space-y-1">
           <div className="flex items-center">
             <Phone className="h-3 w-3 text-gray-400 mr-2" />
