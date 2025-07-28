@@ -7,7 +7,7 @@ import {
   LogOut,
   Stethoscope,
   User,
-  Activity
+  // Activity
 } from 'lucide-react';
 import { logout } from '../utils/authUtils';
 
