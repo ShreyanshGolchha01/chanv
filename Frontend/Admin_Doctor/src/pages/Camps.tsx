@@ -4,7 +4,7 @@ import { Plus, Calendar, MapPin, Users, Edit, Trash2, Eye, Search, X, Save, Chev
 import { createPortal } from 'react-dom';
 import DataTable from '../components/DataTable';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { mockCamps, mockDoctors, getDoctorById } from '../data/mockData';
+import { mockCamps } from '../data/mockData';
 import type { Camp, TableColumn } from '../types/interfaces';
 import serverUrl from './Server';
 import axios from 'axios';
@@ -273,19 +273,6 @@ const Camps: React.FC = () => {
   };
 
   fetchCamps();
-
-  // Auto-update camp statuses every 30 seconds
-  const intervalId = setInterval(async () => {
-    try {
-      const endpoint = `${serverUrl}auto_update_camps.php`;
-      await axios.post(endpoint);
-      fetchCamps(); // Refresh camps after auto-update
-    } catch (error) {
-      console.error('Error in auto-update:', error);
-    }
-  }, 30000);
-
-  return () => clearInterval(intervalId);
 }, []);
 // Run only on component mount
 
