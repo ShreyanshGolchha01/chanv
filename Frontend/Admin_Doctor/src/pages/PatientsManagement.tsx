@@ -1,5 +1,5 @@
 import React, { useState,useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import serverUrl from './Server';
 import axios from 'axios';
 import type{ Patient } from '../types/interfaces';
@@ -23,9 +23,9 @@ const PatientsManagement: React.FC = () => {
   // const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddPatient, setShowAddPatient] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  // const [selectedFilter, setSelectedFilter] = useState('all');
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [dateOfBirthInput, setDateOfBirthInput] = useState('');
+  // const [dateOfBirthInput, setDateOfBirthInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFilterField, setSelectedFilterField] = useState('');
   const [selectedFilterValue, setSelectedFilterValue] = useState('');
@@ -225,21 +225,21 @@ const openDetailsModal = (patient: Patient) => {
   };
 
   // Function to format date to DD/MM/YYYY
-  const formatDateToDDMMYYYY = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+  // const formatDateToDDMMYYYY = (dateString: string) => {
+  //   if (!dateString) return '';
+  //   const date = new Date(dateString);
+  //   const day = date.getDate().toString().padStart(2, '0');
+  //   const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  //   const year = date.getFullYear();
+  //   return `${day}/${month}/${year}`;
+  // };
 
   // Function to parse DD/MM/YYYY back to YYYY-MM-DD for input
-  const parseDDMMYYYYToDate = (ddmmyyyy: string) => {
-    if (!ddmmyyyy || ddmmyyyy.length !== 10) return '';
-    const [day, month, year] = ddmmyyyy.split('/');
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  };
+  // const parseDDMMYYYYToDate = (ddmmyyyy: string) => {
+  //   if (!ddmmyyyy || ddmmyyyy.length !== 10) return '';
+  //   const [day, month, year] = ddmmyyyy.split('/');
+  //   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  // };
 
   // Empty patients data - Connect to your backend
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -280,31 +280,31 @@ const filteredPatients = patients.filter((patient) => {
 });
 
 
-  const getHealthStatusColor = (status: string) => {
-    switch (status) {
-      case 'good':
-        return 'bg-green-100 text-green-800';
-      case 'fair':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'poor':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // const getHealthStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'good':
+  //       return 'bg-green-100 text-green-800';
+  //     case 'fair':
+  //       return 'bg-yellow-100 text-yellow-800';
+  //     case 'poor':
+  //       return 'bg-red-100 text-red-800';
+  //     default:
+  //       return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
-  const getHealthStatusText = (status: string) => {
-    switch (status) {
-      case 'good':
-        return 'अच्छी';
-      case 'fair':
-        return 'सामान्य';
-      case 'poor':
-        return 'खराब';
-      default:
-        return 'अज्ञात';
-    }
-  };
+  // const getHealthStatusText = (status: string) => {
+  //   switch (status) {
+  //     case 'good':
+  //       return 'अच्छी';
+  //     case 'fair':
+  //       return 'सामान्य';
+  //     case 'poor':
+  //       return 'खराब';
+  //     default:
+  //       return 'अज्ञात';
+  //   }
+  // };
 
   
 
