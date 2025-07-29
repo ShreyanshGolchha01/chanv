@@ -37,7 +37,9 @@ const [relativePhone, setRelativePhone] = useState('');
 const [relation, setRelation] = useState('');
 const [statistics, setStatistics] = useState({
   totalOutsiders: 0,
-  totalAyushmanBeneficiaries: 0
+  totalAyushmanBeneficiaries: 0,
+  totalEmployees: 0,
+  totalRelatives: 0
 });
 const [newPatientData, setNewPatientData] = useState({
   name: '',
@@ -115,14 +117,27 @@ const resetPatientForm = () => {
 // Load statistics from backend
 const loadStatistics = async () => {
   try {
+    // Get outsiders and ayushman stats
     const endpoint = `${serverUrl}get_outsiders_ayushman_stats.php`;
     const response = await axios.post(endpoint, {});
     const data = response.data;
 
-    if (data.success) {
+    // Get total employees count from users table
+    const employeesEndpoint = `${serverUrl}get_employees_count.php`;
+    const employeesResponse = await axios.post(employeesEndpoint, {});
+    const employeesData = employeesResponse.data;
+
+    // Get total relatives count from relatives table
+    const relativesEndpoint = `${serverUrl}get_relatives_count.php`;
+    const relativesResponse = await axios.post(relativesEndpoint, {});
+    const relativesData = relativesResponse.data;
+
+    if (data.success && employeesData.success && relativesData.success) {
       setStatistics({
         totalOutsiders: data.data.totalOutsiders,
-        totalAyushmanBeneficiaries: data.data.totalAyushmanBeneficiaries
+        totalAyushmanBeneficiaries: data.data.totalAyushmanBeneficiaries,
+        totalEmployees: employeesData.data.count,
+        totalRelatives: relativesData.data.count
       });
     }
   } catch (error) {
@@ -689,7 +704,7 @@ const endpoint = `${serverUrl}add_patient.php`;
         <div className="card border border-gray-400 text-center">
           <div className="p-6">
             <Users className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-green-600">{patients.length}</div>
+            <div className="text-2xl font-bold text-green-600">{statistics.totalEmployees}</div>
             <div className="text-sm text-gray-600">कुल कर्मचारी</div>
           </div>
         </div>
@@ -718,7 +733,7 @@ const endpoint = `${serverUrl}add_patient.php`;
           <div className="p-6">
             <UserPlus className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-600">
-              {patients.reduce((sum, p) => sum + p.familyMembers, 0)}
+              {statistics.totalRelatives}
             </div>
             <div className="text-sm text-gray-600">कुल पारिवारिक सदस्य</div>
           </div>
@@ -841,7 +856,7 @@ const endpoint = `${serverUrl}add_patient.php`;
       <div className="card border border-gray-400">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900">
-            कर्मचारियों की सूची ({filteredPatients.length} परिणाम)
+            मरिज़ो की सूची ({filteredPatients.length} परिणाम)
           </h3>
         </div>
 

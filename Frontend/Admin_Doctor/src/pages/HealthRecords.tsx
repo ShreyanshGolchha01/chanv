@@ -290,8 +290,11 @@ const HealthRecords: React.FC = () => {
   const handleCampSearch = async () => {
     setCampSearchLoading(true);
     try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      const userId = userData.id || '1';
+      const doctorInfo = JSON.parse(localStorage.getItem('doctorInfo') || '{}');
+      
+      const userId = userInfo.id || userData.id || doctorInfo.id || '1';
       
       const result = await healthRecordsAPI.getUserCamps(userId);
 
@@ -426,8 +429,19 @@ const HealthRecords: React.FC = () => {
       const campId = selectedCamp?.id || null;
 
       // Get doctor name from logged in user
-      const doctorData = JSON.parse(localStorage.getItem('userData') || '{}');
-      const doctorName = doctorData.fullname || doctorData.name || 'डॉक्टर';
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      const doctorInfo = JSON.parse(localStorage.getItem('doctorInfo') || '{}');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      console.log('userInfo:', userInfo);
+      console.log('doctorInfo:', doctorInfo);
+      console.log('userData:', userData);
+      
+      const doctorName = userInfo.name || doctorInfo.name || userData.name || 
+                        userInfo.fullname || doctorInfo.fullname || userData.fullname ||
+                        userInfo.full_name || doctorInfo.full_name || userData.full_name ||
+                        userInfo.doctor_name || doctorInfo.doctor_name || userData.doctor_name ||
+                        'डॉक्टर';
 
       // Prepare vitals data
       const vitals = {

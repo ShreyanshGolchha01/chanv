@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import serverUrl from './Server';
 import type { Patient } from '../types/interfaces';
+import * as XLSX from 'xlsx';
 
 const Users: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -22,6 +23,7 @@ const Users: React.FC = () => {
   const [selectedPatient] = useState<Patient | null>(null);
   const [healthReportData] = useState<any>(null);
   const [isLoadingReport] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // const openHealthReportPopup = async (patient: Patient) => {
   //   setSelectedPatient(patient);
@@ -226,6 +228,119 @@ ${index + 1}. रिपोर्ट दिनांक: ${new Date(report.date).
   const endIndex = startIndex + itemsPerPage;
   const currentData = filteredData.slice(startIndex, endIndex);
 
+  const exportFilteredData = async () => {
+    setIsExporting(true);
+    try {
+      // Use current filtered data
+      const dataToExport = filteredData;
+
+      // Prepare formatted user data for Excel
+      const formattedUsers = dataToExport.map((user: Patient) => ({
+        'नाम': user.name || '',
+        'आयु': user.age || '',
+        'लिंग': user.gender === 'male' ? 'पुरुष' : user.gender === 'female' ? 'महिला' : user.gender || '',
+        'फोन': user.phone || '',
+        'ईमेल': user.email || '',
+        'पता': user.address || '',
+        'रक्त समूह': user.bloodGroup || '',
+        'विभाग': user.department || '',
+        'स्वास्थ्य स्थिति': user.healthStatus || '',
+        'परिवारिक सदस्य': user.familyMembers || 0,
+        'ABHA ID': user.hasAbhaId === 'yes' ? 'हाँ' : 'नहीं',
+        'आयुष्मान कार्ड': user.hasAyushmanCard === 'yes' ? 'हाँ' : 'नहीं',
+        'अंतिम जांच': user.lastVisit ? new Date(user.lastVisit).toLocaleDateString('hi-IN') : '',
+        'जन्म तिथि': user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('hi-IN') : ''
+      }));
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      const usersSheet = XLSX.utils.json_to_sheet(formattedUsers);
+      XLSX.utils.book_append_sheet(wb, usersSheet, 'फिल्टर किया गया डेटा');
+
+      // Export to Excel
+      const fileName = `Chhanv_Filtered_Data_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      alert(`📊 फिल्टर किया गया डेटा सफलतापूर्वक Excel में निर्यात हो गया!\n\n📁 फ़ाइल: ${fileName}\n👥 मरीज़: ${formattedUsers.length}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('❌ डेटा निर्यात करने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportAllData = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch users
+      const usersRes = await axios.post(`${serverUrl}show_Patients.php`, {});
+      const users = usersRes.data.posts || [];
+
+      // Fetch relatives
+      let relatives = [];
+      try {
+        const relativesRes = await axios.post(`${serverUrl}get_family_members.php`, {});
+        relatives = relativesRes.data.posts || [];
+      } catch (error) {
+        console.log('Family members API not available');
+      }
+
+      // Prepare formatted user data for Excel
+      const formattedUsers = users.map((user: any) => ({
+        'नाम': user.name || '',
+        'आयु': user.age || '',
+        'लिंग': user.gender === 'male' ? 'पुरुष' : user.gender === 'female' ? 'महिला' : user.gender || '',
+        'फोन': user.phone || '',
+        'ईमेल': user.email || '',
+        'पता': user.address || '',
+        'रक्त समूह': user.bloodGroup || '',
+        'विभाग': user.department || '',
+        'स्वास्थ्य स्थिति': user.healthStatus || '',
+        'परिवारिक सदस्य': user.familyMembers || 0,
+        'ABHA ID': user.hasAbhaId === 'yes' ? 'हाँ' : 'नहीं',
+        'आयुष्मान कार्ड': user.hasAyushmanCard === 'yes' ? 'हाँ' : 'नहीं',
+        'अंतिम जांच': user.date ? new Date(user.date).toLocaleDateString('hi-IN') : '',
+        'जन्म तिथि': user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('hi-IN') : ''
+      }));
+
+      // Prepare formatted relatives data for Excel
+      const formattedRelatives = relatives.map((relative: any) => ({
+        'परिवारिक सदस्य का नाम': relative.name || '',
+        'आयु': relative.age || '',
+        'लिंग': relative.gender === 'male' ? 'पुरुष' : relative.gender === 'female' ? 'महिला' : relative.gender || '',
+        'रिश्ता': relative.relationship || '',
+        'मुख्य सदस्य ID': relative.main_member_id || '',
+        'फोन': relative.phone || '',
+        'पता': relative.address || ''
+      }));
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Add Users sheet
+      const usersSheet = XLSX.utils.json_to_sheet(formattedUsers);
+      XLSX.utils.book_append_sheet(wb, usersSheet, 'मरीज़ डेटा');
+
+      // Add Relatives sheet if data exists
+      if (formattedRelatives.length > 0) {
+        const relativesSheet = XLSX.utils.json_to_sheet(formattedRelatives);
+        XLSX.utils.book_append_sheet(wb, relativesSheet, 'परिवारिक सदस्य');
+      }
+
+      // Export to Excel
+      const fileName = `Chhanv_Health_Data_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      alert(`📊 डेटा सफलतापूर्वक Excel में निर्यात हो गया!\n\n📁 फ़ाइल: ${fileName}\n👥 मरीज़: ${formattedUsers.length}\n👨‍👩‍👧‍👦 परिवारिक सदस्य: ${formattedRelatives.length}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('❌ डेटा निर्यात करने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -234,10 +349,57 @@ ${index + 1}. रिपोर्ट दिनांक: ${new Date(report.date).
           <h1 className="text-2xl font-bold text-gray-900">मरीज़ और स्वास्थ्य रिकॉर्ड</h1>
           <p className="text-gray-600">कर्मचारी स्वास्थ्य रिकॉर्ड और परिवार का डेटा देखें</p>
         </div>
-        <button className="btn-primary flex items-center space-x-2">
-          <Download className="h-4 w-4" />
-          <span>डेटा निर्यात करें</span>
-        </button>
+        <div className="flex space-x-3">
+          {/* Export Filtered Data Button */}
+          {filteredData.length !== patients.length && (
+            <button 
+              className={`btn-secondary flex items-center space-x-2 transition-colors ${
+                isExporting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={exportFilteredData}
+              disabled={isExporting}
+              title={`वर्तमान फिल्टर किए गए ${filteredData.length} मरीज़ों का डेटा Excel में डाउनलोड करें`}
+            >
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>निर्यात हो रहा है...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  <span>🔍 फिल्टर्ड डेटा ({filteredData.length})</span>
+                </>
+              )}
+            </button>
+          )}
+          
+          {/* Export All Data Button */}
+          <button 
+            className={`btn-primary flex items-center space-x-2 transition-colors ${
+              isExporting 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            onClick={exportAllData}
+            disabled={isExporting}
+            title="सभी मरीज़ों का डेटा Excel में डाउनलोड करें"
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>निर्यात हो रहा है...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>📊 संपूर्ण डेटा</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
@@ -620,26 +782,51 @@ ${index + 1}. रिपोर्ट दिनांक: ${new Date(report.date).
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-between items-center px-6 py-3 border-t text-sm text-gray-700">
-            <span>
-              {filteredData.length} में से {startIndex + 1} - {Math.min(endIndex, filteredData.length)} परिणाम
-            </span>
+          <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-3 border-t text-sm text-gray-700 space-y-2 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-4">
+              <span>
+                {filteredData.length} में से {startIndex + 1} - {Math.min(endIndex, filteredData.length)} परिणाम
+              </span>
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <span>📊 कुल: {patients.length} मरीज़</span>
+                {filteredData.length !== patients.length && (
+                  <span>| 🔍 फिल्टर्ड: {filteredData.length}</span>
+                )}
+              </div>
+            </div>
             <div className="space-x-2">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 पिछला
               </button>
-              <span>पृष्ठ {currentPage} / {totalPages}</span>
+              <span className="px-2">पृष्ठ {currentPage} / {totalPages}</span>
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
                 अगला
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Footer Stats - Always visible when no pagination */}
+        {totalPages <= 1 && (
+          <div className="px-6 py-3 border-t bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600 space-y-2 sm:space-y-0">
+              <div className="flex items-center space-x-4">
+                <span>📊 कुल मरीज़: {patients.length}</span>
+                {filteredData.length !== patients.length && (
+                  <span>🔍 फिल्टर्ड: {filteredData.length}</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 text-xs">
+                <span>💾 Excel Export उपलब्ध</span>
+              </div>
             </div>
           </div>
         )}

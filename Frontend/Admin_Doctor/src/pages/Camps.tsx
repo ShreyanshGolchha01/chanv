@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // UPDATED: Added Search, X, Save, ChevronDown icons for new dialog functionality
-import { Plus, Calendar, MapPin, Users, Edit, Trash2, Eye, Search, X, Save, ChevronDown } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, Trash2, Search, X, Save, ChevronDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import DataTable from '../components/DataTable';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -670,12 +670,12 @@ const openEditModal = (camp: Camp) => {
       sortable: false,
       render: (_, row) => (
         <div className="flex items-center space-x-2">
-          <button
+          {/* <button
             onClick={() => console.log('View camp:', row.id)}
             className="p-1 text-gray-400 hover:text-primary-600"
           >
             <Eye className="h-4 w-4" />
-          </button>
+          </button> */}
           <button
             onClick={() => openEditModal(row)}
             className="p-1 text-gray-400 hover:text-primary-600"
@@ -914,7 +914,7 @@ const openEditModal = (camp: Camp) => {
     </h4>
     <div className="space-y-2">
       {formData.assignedDoctors.map(doctorId => {
-        const doctor = doctors.find(d => d.id === doctorId);
+        const doctor = doctors.find(d => d.name === doctorId);
         return doctor ? (
           <div key={doctor.id} className="flex items-center justify-between text-sm bg-white p-3 rounded border shadow-sm">
             <div className="flex-1">

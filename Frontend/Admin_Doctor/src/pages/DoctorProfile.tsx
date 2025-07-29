@@ -11,7 +11,6 @@ import {
   Edit3,
   Save,
   X,
-  Camera,
   Stethoscope,
   GraduationCap,
   Building,
@@ -267,9 +266,6 @@ useEffect(() => {
               <div className="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                 <User className="h-12 w-12 text-white" />
               </div>
-              <button className="absolute bottom-0 right-0 bg-white text-green-700 p-2 rounded-full hover:bg-green-50 transition-colors">
-                <Camera className="h-4 w-4" />
-              </button>
             </div>
             <div>
               <h1 className="text-3xl font-bold mb-2">{doctorData.personalInfo.name}</h1>

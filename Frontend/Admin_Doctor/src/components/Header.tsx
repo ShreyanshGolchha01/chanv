@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, User, Search } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import AsyncStorage from '../utils/AsyncStorage';
 
 interface HeaderProps {
@@ -48,16 +48,15 @@ const Header: React.FC<HeaderProps> = ({ title, onMenuClick }) => {
         {/* Right section */}
         <div className="flex items-center space-x-4">
           {/* Search bar - hidden on mobile */}
-          <div className="hidden md:flex items-center">
+          {/* <div className="hidden md:flex items-center">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="खोजें..."
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent w-64"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Notifications */}
           {/* <button className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100">

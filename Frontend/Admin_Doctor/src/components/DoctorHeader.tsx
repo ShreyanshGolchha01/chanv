@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Search, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut } from 'lucide-react';
 import { logout, getUserInfo } from '../utils/authUtils';
 
 interface DoctorHeaderProps {
@@ -61,7 +61,7 @@ const DoctorHeader: React.FC<DoctorHeaderProps> = ({ title, onMenuClick }) => {
         {/* Right side */}
         <div className="flex items-center space-x-4">
           {/* Search */}
-          <div className="hidden md:block relative">
+          {/* <div className="hidden md:block relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
@@ -70,7 +70,7 @@ const DoctorHeader: React.FC<DoctorHeaderProps> = ({ title, onMenuClick }) => {
               placeholder="मरीज़ खोजें..."
               className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-          </div>
+          </div> */}
 
           {/* User menu */}
           <div className="relative">
