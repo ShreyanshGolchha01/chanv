@@ -19,6 +19,7 @@ import DoctorDashboard from '../pages/DoctorDashboard';
 import PatientsManagement from '../pages/PatientsManagement';
 import DoctorActivities from '../pages/DoctorActivities';
 import HealthRecords from '../pages/HealthRecords';
+import ServiceRecords from '../pages/ServiceRecords';
 import DoctorProfile from '../pages/DoctorProfile';
 import DoctorLayout from '../layouts/DoctorLayout';
 
@@ -173,12 +174,16 @@ export const router = createBrowserRouter([
         element: <PatientsManagement />,
       },
       {
-        path: 'activities',
-        element: <DoctorActivities />,
+        path: 'service-records',
+        element: <ServiceRecords />,
       },
       {
         path: 'health-records',
         element: <HealthRecords />,
+      },
+      {
+        path: 'activities',
+        element: <DoctorActivities />,
       },
       {
         path: 'profile',

@@ -7,6 +7,7 @@ import {
   LogOut,
   Stethoscope,
   User,
+  FileText
   // Activity
 } from 'lucide-react';
 import { logout } from '../utils/authUtils';
@@ -22,6 +23,7 @@ const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isOpen, onClose }) => {
     { icon: LayoutDashboard, label: 'डैशबोर्ड', path: '/doctor/dashboard' },
     // { icon: MapPin, label: 'नया शिविर', path: '/doctor/new-camp' },
     { icon: Users, label: 'मरीज़ प्रबंधन', path: '/doctor/patients' },
+    { icon: FileText, label: 'सेवा रिकॉर्ड', path: '/doctor/service-records' },
     { icon: Heart, label: 'स्वास्थ्य रिकॉर्ड', path: '/doctor/health-records' },
     // { icon: Activity, label: 'सभी गतिविधि', path: '/doctor/activities' },
     { icon: User, label: 'प्रोफाइल', path: '/doctor/profile' },
@@ -110,7 +112,7 @@ const DoctorSidebar: React.FC<DoctorSidebarProps> = ({ isOpen, onClose }) => {
               <p className="text-xs text-gray-500 mb-1">संचालित</p>
               <p className="text-xs font-semibold text-green-600">SSIPMT, Raipur</p>
               <p className="text-xs text-gray-400 mt-1">स्वास्थ्य एवं परिवार कल्याण मंत्रालय</p>
-              <p className="text-xs text-gray-400">संस्करण 1.0.0</p>
+              <p className="text-xs text-gray-400">संस्करण 1.4.0</p>
             </div>
           </div>
         </div>

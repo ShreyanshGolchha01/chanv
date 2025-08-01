@@ -304,7 +304,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          {/* <div className="mt-4 pt-4 border-t border-gray-200">
             <button 
               onClick={() => {
                 if (showAllActivities) {
@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
             >
               {showAllActivities ? 'कम गतिविधि दिखाएं' : 'सभी गतिविधि देखें'} →
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 

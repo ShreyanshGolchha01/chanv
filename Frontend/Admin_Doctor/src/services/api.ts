@@ -215,6 +215,70 @@ export const healthRecordsAPI = {
   },
 };
 
+// Service Records API
+export const serviceRecordsAPI = {
+  // Add new service record
+  addServiceRecord: async (recordData: any) => {
+    try {
+      const response = await fetch(`${PHP_API_BASE_URL}/add_service_record.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(recordData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Add service record error:', error);
+      throw error;
+    }
+  },
+
+  // Get service records with filters
+  getServiceRecords: async (filters: {
+    searchTerm?: string;
+    patientTypeFilter?: string;
+    serviceTypeFilter?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    try {
+      const response = await fetch(`${PHP_API_BASE_URL}/get_service_records.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filters),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Get service records error:', error);
+      throw error;
+    }
+  },
+
+  // Use existing patient search and camp functions from healthRecordsAPI
+  searchPatient: (phone: string, patientType: 'employee' | 'relative' | 'outsider') => {
+    return healthRecordsAPI.searchPatient(phone, patientType);
+  },
+
+  getUserCamps: (userId: string) => {
+    return healthRecordsAPI.getUserCamps(userId);
+  }
+};
+
 // Error handling utility
 export const handleAPIError = async (error: any) => {
   console.error('API Error:', error);
